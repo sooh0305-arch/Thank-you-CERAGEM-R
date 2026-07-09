@@ -113,8 +113,35 @@ export const api = {
   async login(email: string, pass: string): Promise<{ user: Profile | null; error: string | null }> {
     try {
       const normalizedEmail = email.toLowerCase().trim();
-      // 1. Auth Login
-      const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
+      let userCredential;
+      try {
+        // 1. Try signing in first
+        userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
+      } catch (signInErr: any) {
+        console.warn("Sign-in failed, checking for initial employee auto-provisioning...", signInErr);
+        
+        // Find if this is a pre-registered employee
+        const empInfo = initialEmployees.find(e => e.email.toLowerCase().trim() === normalizedEmail);
+        const expectedPass = empInfo ? (empInfo as any).password || "000000" : null;
+        
+        // If they are an initial employee and their typed password matches the predefined one
+        if (empInfo && expectedPass === pass) {
+          try {
+            // Attempt to create the user on-demand
+            userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, pass);
+          } catch (signUpErr: any) {
+            if (signUpErr.code === 'auth/email-already-in-use') {
+              // User already exists in auth, so the sign-in error was truly wrong password/credential
+              return { user: null, error: "이메일 또는 비밀번호가 일치하지 않습니다." };
+            }
+            throw signUpErr;
+          }
+        } else {
+          // Not an initial employee or password didn't match the predefined one
+          throw signInErr;
+        }
+      }
+
       const uid = userCredential.user.uid;
 
       // 2. Fetch Profile from Firestore
