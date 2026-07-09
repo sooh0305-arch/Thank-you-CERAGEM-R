@@ -424,11 +424,10 @@ export const api = {
     try {
       const q = query(
         collection(db, "withdrawals"),
-        where("user_id", "==", userId),
-        orderBy("created_at", "desc")
+        where("user_id", "==", userId)
       );
       const snap = await getDocs(q);
-      return snap.docs.map(d => {
+      const withdrawals = snap.docs.map(d => {
         const data = d.data();
         return {
           id: d.id,
@@ -436,6 +435,7 @@ export const api = {
           created_at: data.created_at?.toDate()?.toISOString() || new Date().toISOString()
         } as Withdrawal;
       });
+      return withdrawals.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     } catch (e) {
       console.error("getUserWithdrawals error:", e);
       return [];

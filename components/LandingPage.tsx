@@ -244,13 +244,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
 
             {/* Bottom Call to Action */}
-            <div className="absolute bottom-[15%] pointer-events-auto">
+            <div className="absolute bottom-[13%] md:bottom-[15%] pointer-events-auto">
               <button 
                 onClick={() => setShowLogin(true)} 
-                className="group relative flex items-center justify-center px-14 py-6 bg-slate-900 text-[#FAF9F6] rounded-2xl border-2 border-slate-900 shadow-brutal-brand hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[10px_10px_0px_0px_#E63946] active:translate-x-[0px] active:translate-y-[0px] active:shadow-brutal-brand transition-all duration-300"
+                className="group relative flex items-center justify-center px-16 py-6 md:px-24 md:py-8 bg-slate-900 text-[#FAF9F6] rounded-2xl border-2 border-slate-900 shadow-brutal-brand hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[10px_10px_0px_0px_#E63946] active:translate-x-[0px] active:translate-y-[0px] active:shadow-brutal-brand transition-all duration-300"
               >
-                <span className="text-base font-black tracking-[0.2em] mr-3">시작하기</span>
-                <ArrowRight className="w-5 h-5 text-yellow-300 group-hover:translate-x-1.5 transition-transform duration-300" />
+                <span className="text-base md:text-xl font-black tracking-[0.25em] mr-3 pl-[0.25em]">시작하기</span>
+                <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-yellow-300 group-hover:translate-x-1.5 transition-transform duration-300" />
               </button>
             </div>
           </div>

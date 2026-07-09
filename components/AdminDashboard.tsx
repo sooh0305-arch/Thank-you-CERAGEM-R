@@ -63,17 +63,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
   };
 
   const handleUpdateWithdrawalStatus = async (withdrawalId: string, status: 'approved' | 'rejected') => {
-    const actionText = status === 'approved' ? '승인(지급 완료)' : '반려';
-    if (!window.confirm(`이 출금 신청을 정말 ${actionText}하시겠습니까?\n반려 시 해당 포인트는 사용자에게 즉시 반환됩니다.`)) return;
+    const actionText = status === 'approved' ? '승인(발송 완료)' : '반려';
+    if (!window.confirm(`이 구매/출금 신청을 정말 ${actionText}하시겠습니까?\n반려 시 차감되었던 포인트가 즉시 사용자에게 반환됩니다.`)) return;
     
     try {
       const success = await api.updateWithdrawalStatus(withdrawalId, status);
       if (success) {
-        alert(`출금 신청이 ${actionText}되었습니다.`);
+        alert(`신청 건이 ${actionText} 처리되었습니다.`);
         fetchData();
         if (refreshData) await refreshData();
       } else {
-        alert('출금 신청 처리 중 오류가 발생했습니다.');
+        alert('신청 처리 중 오류가 발생했습니다.');
       }
     } catch (e: any) {
       alert('오류 발생: ' + e.message);
@@ -227,7 +227,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
             { id: 'ranking', icon: TrendingUp, label: '랭킹' },
             { id: 'users', icon: Users, label: '사용자' },
             { id: 'praise_list', icon: Heart, label: '칭찬내역' },
-            { id: 'withdrawal_requests', icon: ShoppingBag, label: '출금신청 관리' },
+            { id: 'withdrawal_requests', icon: ShoppingBag, label: '기프티콘 관리' },
             { id: 'stats', icon: BarChart3, label: '통계' },
             { id: 'control', icon: Settings, label: '제어센터' },
           ].map((tab) => {
@@ -509,22 +509,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                       <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
                         <tr>
                           <th className="px-6 py-4 text-left font-semibold">신청직원</th>
-                          <th className="px-6 py-4 text-left font-semibold">계좌 정보</th>
-                          <th className="px-6 py-4 text-right font-semibold">신청 금액 (원)</th>
+                          <th className="px-6 py-4 text-left font-semibold">상품명 / 구분</th>
+                          <th className="px-6 py-4 text-right font-semibold">차감 포인트</th>
                           <th className="px-6 py-4 text-center font-semibold">상태</th>
                           <th className="px-6 py-4 text-right font-semibold">신청 시간</th>
                           <th className="px-6 py-4 text-center font-semibold">작업</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {allWithdrawals.filter(w => w.user?.name.includes(searchTerm) || w.bank_name.includes(searchTerm) || w.account_holder.includes(searchTerm)).map(w => (
+                        {allWithdrawals.filter(w => w.user?.name.includes(searchTerm) || w.bank_name.includes(searchTerm) || w.account_holder.includes(searchTerm) || w.account_number.includes(searchTerm)).map(w => (
                           <tr key={w.id} className="text-xs hover:bg-slate-50/50 transition-colors">
                             <td className="px-6 py-4">
                               <div className="font-semibold text-slate-800">{w.user?.name || w.account_holder}</div>
                               <div className="text-[10px] text-slate-400 font-medium">{w.user?.department || '부서 없음'}</div>
                             </td>
                             <td className="px-6 py-4">
-                              {w.bank_name === '급여 합산 지급' ? (
+                              {w.bank_name === '기프티콘 구매' ? (
+                                <>
+                                  <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span className="bg-[#03C75A]/5 text-[#03C75A] px-1.5 py-0.5 rounded text-[9px] font-bold">네이버페이</span>
+                                    <span>{w.account_number}</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 mt-0.5">구분: {w.account_holder}</div>
+                                </>
+                              ) : w.bank_name === '급여 합산 지급' ? (
                                 <span className="bg-rose-50 text-[#E63946] px-2.5 py-1 rounded-md text-[10px] font-bold border border-rose-100">
                                   급여 합산 지급 예정 (급여 계좌)
                                 </span>
@@ -536,7 +544,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                               )}
                             </td>
                             <td className="px-6 py-4 text-right font-extrabold text-[#E63946]">
-                              {w.points.toLocaleString()} 원
+                              {w.points.toLocaleString()} P
                             </td>
                             <td className="px-6 py-4 text-center">
                               {w.status === 'pending' && (
@@ -546,7 +554,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                               )}
                               {w.status === 'approved' && (
                                 <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-emerald-100">
-                                  지급완료
+                                  {w.bank_name === '기프티콘 구매' ? '발송완료' : '지급완료'}
                                 </span>
                               )}
                               {w.status === 'rejected' && (

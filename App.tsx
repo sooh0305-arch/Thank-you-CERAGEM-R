@@ -6,7 +6,7 @@ import Dashboard from './components/Dashboard';
 import History from './components/History';
 import AdminDashboard from './components/AdminDashboard';
 import Guide from './components/Guide';
-import WithdrawalRequest from './components/WithdrawalRequest';
+import GiftShop from './components/GiftShop';
 import PasswordChangeModal from './components/PasswordChangeModal';
 import { api } from './lib/api';
 import { Profile, Notification } from './types';
@@ -150,8 +150,8 @@ const App: React.FC = () => {
           {currentPage === 'history' && (
             <History user={currentUser} users={allUsers} />
           )}
-          {currentPage === 'withdrawal' && (
-            <WithdrawalRequest user={currentUser} refreshData={refreshData} />
+          {currentPage === 'giftshop' && (
+            <GiftShop user={currentUser} refreshData={refreshData} />
           )}
           {currentPage === 'guide' && (
             <Guide />

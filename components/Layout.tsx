@@ -18,7 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPage, 
   const navItems = [
     { id: 'dashboard', icon: Home, label: '홈' },
     { id: 'history', icon: History, label: '나의 히스토리' },
-    { id: 'withdrawal', icon: Wallet, label: '출금 신청' },
+    { id: 'giftshop', icon: ShoppingBag, label: '기프티콘 상점' },
     { id: 'guide', icon: HelpCircle, label: '가이드' },
   ];
 
@@ -122,7 +122,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPage, 
              </button>
              <div className="text-sm lg:text-base font-bold text-slate-800 tracking-tight flex items-center gap-2">
                {currentPage === 'dashboard' && '대시보드 홈'}
-               {currentPage === 'withdrawal' && '현금 출금 신청'}
+               {currentPage === 'giftshop' && '기프티콘 상점'}
                {currentPage === 'history' && '나의 히스토리'}
                {currentPage === 'guide' && '사용 설명서'}
                {currentPage === 'admin' && '관리자 모드'}
