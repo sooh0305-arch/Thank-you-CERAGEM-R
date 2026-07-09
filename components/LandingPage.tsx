@@ -323,11 +323,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               {/* Naver Works SSO Button */}
               <button 
                 type="button"
-                onClick={() => setShowNaverWorks(true)}
-                className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 hover:border-slate-300 font-bold rounded-xl transition-all flex justify-center items-center shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] text-sm mb-4"
+                onClick={() => alert("네이버웍스 SSO 연동 준비 중입니다. 사내 이메일과 비밀번호를 사용하여 로그인해 주세요.")}
+                className="w-full py-3.5 bg-slate-50/50 hover:bg-slate-50 text-slate-400 border border-slate-200 font-bold rounded-xl transition-all flex justify-center items-center shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] text-sm mb-4 cursor-not-allowed"
+                title="SSO 연동 준비 중"
               >
                 <NaverWorksIcon />
-                <span>네이버 웍스로 시작하기</span>
+                <span>네이버 웍스로 시작하기 (준비 중)</span>
               </button>
 
               <div className="border-t-2 border-slate-900 my-5" />

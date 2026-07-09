@@ -168,7 +168,7 @@ const GiftShop: React.FC<GiftShopProps> = ({ user, refreshData }) => {
           <span className="text-xs font-bold text-slate-700 tracking-wider">받은 포인트로 인기 모바일 상품권을 구매해보세요! 🎁</span>
         </div>
         <h1 className="text-3xl md:text-5xl font-black text-slate-800 tracking-tight leading-tight">기프티콘/상품권 상점</h1>
-        <p className="text-sm md:text-base text-slate-500 font-medium max-w-2xl leading-relaxed">
+        <p className="text-xs sm:text-sm md:text-base text-slate-500 font-medium max-w-none leading-relaxed break-keep md:whitespace-nowrap">
           동료들에게 받은 칭찬 카드로 열심히 적립한 소중한 포인트를 즉시 네이버페이 포인트 쿠폰과 CU 모바일 금액권으로 교환하세요.
         </p>
       </div>
