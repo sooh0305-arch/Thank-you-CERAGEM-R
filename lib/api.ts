@@ -334,7 +334,7 @@ export const api = {
 
   async requestWithdrawal(userId: string, points: number, bankName: string, accountNumber: string, accountHolder: string): Promise<{ success: boolean; message: string }> {
     try {
-      if (points < 10000) {
+      if (bankName !== '기프티콘 구매' && points < 10000) {
         return { success: false, message: "출금 신청은 최소 10,000P 이상 가능합니다." };
       }
       return await runTransaction(db, async (transaction) => {
@@ -360,7 +360,8 @@ export const api = {
           created_at: serverTimestamp()
         });
         
-        return { success: true, message: "출금 신청이 완료되었습니다." };
+        const successMsg = bankName === '기프티콘 구매' ? "기프티콘 구매가 신청되었습니다." : "출금 신청이 완료되었습니다.";
+        return { success: true, message: successMsg };
       });
     } catch (e: any) {
       return { success: false, message: e.message };
