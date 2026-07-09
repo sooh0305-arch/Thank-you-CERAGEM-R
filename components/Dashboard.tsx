@@ -214,15 +214,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
           <Sparkles size={140} className="text-white" />
         </div>
 
-        <div className="relative z-10 max-w-2xl space-y-4">
+        <div className="relative z-10 max-w-4xl space-y-4">
           <div className="inline-flex items-center gap-1.5 bg-white/20 text-white px-3.5 py-1 rounded-full font-bold text-xs tracking-wider uppercase">
             THANK YOU CERAGEM RUNWAY
           </div>
-          <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight break-keep">
-            오늘도 동료에게<br />
-            따뜻한 <span className="text-yellow-300">Thank you CERAGEM</span>을 보내주세요!
+          <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight break-keep whitespace-nowrap sm:whitespace-normal">
+            오늘도 동료에게 따뜻한 <span className="text-yellow-300">Thank you CERAGEM</span>을 보내주세요!
           </h1>
-          <p className="text-rose-100 font-medium text-sm lg:text-base max-w-xl break-keep">
+          <p className="text-rose-100 font-medium text-sm lg:text-base max-w-none break-keep">
             가치 있는 일에는 아낌없이 칭찬을, 실패를 두려워하지 않는 동료에게는 진심 어린 응원의 에너지를 전해보세요!
           </p>
           

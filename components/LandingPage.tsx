@@ -165,7 +165,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
         <InteractiveSticker className="top-[18%] left-[8%] animate-float-slow" delay={0}>
           <div className="bg-[#E63946] text-white p-4 rounded-2xl border-2 border-slate-900 shadow-brutal-black flex items-center gap-2">
             <Heart className="w-6 h-6 fill-white" />
-            <span className="font-black text-xs tracking-wider">KUDOS!</span>
+            <span className="font-black text-xs tracking-wider">THANK YOU! 💌</span>
           </div>
         </InteractiveSticker>
 
@@ -214,8 +214,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             
             {/* Top Display Banner */}
             <div className="absolute top-[12%] md:top-[15%] pointer-events-auto">
-              <div className="bg-slate-900 text-[#FAF9F6] border-2 border-slate-900 px-6 py-2.5 rounded-full shadow-brutal-black transform -rotate-2 hover:rotate-0 transition-transform duration-300 font-black text-xs md:text-sm tracking-[0.25em] uppercase">
-                🎉 THANK YOU, CERAGEM!
+              <div className="bg-slate-900 text-[#FAF9F6] border-2 border-slate-900 px-6 py-2.5 rounded-full transform -rotate-2 hover:rotate-0 transition-transform duration-300 font-black text-xs md:text-sm tracking-wider">
+                🤝 칭찬으로 만드는 건강한 조직문화
               </div>
             </div>
 
@@ -255,14 +255,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
           </div>
         ) : (
-          <div className="w-[90%] md:w-full max-w-sm p-8 md:p-9 bg-white rounded-2xl border-2 border-slate-900 shadow-brutal-black transform transition-all animate-scale-in relative z-50 pointer-events-auto">
+          <div className="w-[90%] md:w-full max-w-sm py-10 px-8 md:py-12 md:px-9 bg-white rounded-2xl border-2 border-slate-900 shadow-brutal-black transform transition-all animate-scale-in relative z-50 pointer-events-auto">
              
              {/* Login Header */}
-             <div className="text-center mb-6 relative">
-               <div className="absolute -top-[3.75rem] left-1/2 -translate-x-1/2 w-14 h-14 rounded-xl bg-[#E63946] flex items-center justify-center text-white border-2 border-slate-900 shadow-brutal-black">
+             <div className="text-center mb-8 flex flex-col items-center">
+               <div className="w-14 h-14 rounded-xl bg-[#E63946] flex items-center justify-center text-white border-2 border-slate-900 shadow-brutal-black mb-3">
                  <Sparkles className="w-6 h-6" />
                </div>
-               <h2 className="text-xl font-black text-slate-800 tracking-tight mt-6">로그인</h2>
+               <h2 className="text-xl font-black text-slate-800 tracking-tight">로그인</h2>
                <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mt-1">Ready to Thank you CERAGEM?</p>
              </div>
 
