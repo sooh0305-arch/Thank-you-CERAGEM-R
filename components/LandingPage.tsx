@@ -38,12 +38,64 @@ const InteractiveSticker = ({
   );
 };
 
+// Naver Works Icon matching the official branding perfectly and optimized for tiny sizes (no text/margins)
+const NaverWorksIcon: React.FC = () => (
+  <svg viewBox="0 0 120 100" className="w-5 h-5 mr-2 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision">
+    <defs>
+      <linearGradient id="nw-green-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#00E365" />
+        <stop offset="100%" stopColor="#00C45B" />
+      </linearGradient>
+      <linearGradient id="nw-purple-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6058F8" />
+        <stop offset="100%" stopColor="#1C68FF" />
+      </linearGradient>
+      <linearGradient id="nw-arch-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#18C5FF" />
+        <stop offset="100%" stopColor="#0082FF" />
+      </linearGradient>
+    </defs>
+    
+    {/* Entire group skewed at -11.5 degrees, centered with padding to prevent any clipping */}
+    <g transform="translate(60, 50) skewX(-11.5) translate(-60, -50)">
+      {/* 1. Right Pillar (at the bottom to allow weaving illusion) */}
+      <rect x="76" y="12" width="20" height="76" rx="10" fill="url(#nw-purple-grad)" />
+      
+      {/* 2. Middle Arch (drawn over the right pillar and under the left pillar to create weaving effect) */}
+      <path
+        d="M 34 68 C 34 34, 86 34, 86 68"
+        stroke="url(#nw-arch-grad)"
+        strokeWidth="20"
+        strokeLinecap="round"
+        fill="none"
+      />
+      
+      {/* 3. Left Pillar (at the top layer of the arch) */}
+      <rect x="24" y="12" width="20" height="76" rx="10" fill="url(#nw-green-grad)" />
+    </g>
+  </svg>
+);
+
+const ssoEmployees = [
+  { name: "이동현", email: "sooh@ceragem.com", dept: "세라제머육성팀", password: "educeragem01" },
+  { name: "조진국", email: "jkcho@ceragem.com", dept: "세라제머육성팀", password: "000000" },
+  { name: "김우진", email: "kwoozin123@ceragem.com", dept: "세라제머육성팀", password: "000000" },
+  { name: "백승휘", email: "shbaik@ceragem.com", dept: "세라제머육성팀", password: "000000" },
+  { name: "손화연", email: "hy0000@ceragem.com", dept: "세라제머육성팀", password: "000000" },
+  { name: "김은성", email: "eskim@ceragem.com", dept: "세라제머HR실", password: "000000" },
+  { name: "곽승훈", email: "sh3257@ceragem.com", dept: "세라제머인사팀", password: "000000" },
+  { name: "김소영", email: "sykim@ceragem.com", dept: "세라제머육성팀", password: "000000" }
+];
+
 const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showNaverWorks, setShowNaverWorks] = useState(false);
+  const [selectedSsoIndex, setSelectedSsoIndex] = useState(0);
+  const [ssoLoading, setSsoLoading] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -73,6 +125,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     const result = await api.sendPasswordReset(emailInput);
     setLoading(false);
     alert(result.message);
+  };
+
+  const handleSsoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSsoLoading(true);
+    setError(null);
+    const emp = ssoEmployees[selectedSsoIndex];
+    const err = await onLogin(emp.email, emp.password);
+    if (err) {
+      setError(err);
+      setShowNaverWorks(false);
+    }
+    setSsoLoading(false);
   };
 
   return (
@@ -154,18 +219,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            {/* Giant Bold Typography Section - Text outline style added for extra punchy visibility */}
+            {/* Giant Bold Typography Section - Clean typography with clean, exterior-only vector outline */}
             <div className="flex flex-col items-center justify-center select-none text-center transform -translate-y-4">
-              <h1 className="text-[10vw] md:text-[6rem] font-black leading-none tracking-tight flex flex-col items-center gap-0">
+              <h1 className="text-[13vw] md:text-[7.5rem] lg:text-[9rem] font-black leading-none tracking-tight flex flex-col items-center gap-0">
                 <span 
-                  className="block transform hover:scale-105 hover:rotate-1 transition-transform duration-300 cursor-default select-none text-[#FAF9F6] text-shadow-brutal"
-                  style={{ textShadow: '0 4px 0 #0f172a, 4px 4px 0 #0f172a, -4px -4px 0 #0f172a, 4px -4px 0 #0f172a, -4px 4px 0 #0f172a, 0 -4px 0 #0f172a, 4px 0 0 #0f172a, -4px 0 0 #0f172a, 0 10px 15px rgba(0,0,0,0.3)' }}
+                  className="block transform hover:scale-105 hover:rotate-1 transition-transform duration-300 cursor-default select-none text-white font-extrabold"
+                  style={{ 
+                    WebkitTextStroke: '8px #0f172a',
+                    paintOrder: 'stroke fill'
+                  }}
                 >
                   Thank you
                 </span>
                 <span 
-                  className="block text-yellow-300 transform -rotate-3 hover:rotate-0 transition-transform duration-300 cursor-default select-none -mt-2 md:-mt-4 text-shadow-brutal"
-                  style={{ textShadow: '0 4px 0 #0f172a, 4px 4px 0 #0f172a, -4px -4px 0 #0f172a, 4px -4px 0 #0f172a, -4px 4px 0 #0f172a, 0 -4px 0 #0f172a, 4px 0 0 #0f172a, -4px 0 0 #0f172a, 0 10px 15px rgba(0,0,0,0.3)' }}
+                  className="block text-yellow-300 transform -rotate-3 hover:rotate-0 transition-transform duration-300 cursor-default select-none -mt-1 md:-mt-3 font-extrabold"
+                  style={{ 
+                    WebkitTextStroke: '8px #0f172a',
+                    paintOrder: 'stroke fill'
+                  }}
                 >
                   CERAGEM
                 </span>
@@ -243,6 +314,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 </button>
               </form>
               
+              <div className="flex items-center my-4">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">또는</span>
+                <div className="flex-grow border-t border-slate-200"></div>
+              </div>
+
+              {/* Naver Works SSO Button */}
+              <button 
+                type="button"
+                onClick={() => setShowNaverWorks(true)}
+                className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 hover:border-slate-300 font-bold rounded-xl transition-all flex justify-center items-center shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] text-sm mb-4"
+              >
+                <NaverWorksIcon />
+                <span>네이버 웍스로 시작하기</span>
+              </button>
+
               <div className="border-t-2 border-slate-900 my-5" />
 
               <button 
@@ -251,9 +338,90 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               >
                 뒤로가기
               </button>
-           </div>
-        )}
+            </div>
+         )}
       </div>
+
+      {/* Naver Works SSO Simulation Modal */}
+      {showNaverWorks && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 pointer-events-auto">
+          <div className="bg-white w-full max-w-sm rounded-2xl border-2 border-slate-900 shadow-brutal-black overflow-hidden animate-scale-in">
+            {/* Header: Green Naver Works Style */}
+            <div className="bg-[#00C73C] p-5 text-white flex items-center justify-between border-b-2 border-slate-900">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                  <NaverWorksIcon />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm tracking-wide">NAVER WORKS</h3>
+                  <p className="text-[9px] text-white/90 font-bold">Single Sign-On</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowNaverWorks(false)}
+                className="w-8 h-8 rounded-lg hover:bg-black/10 flex items-center justify-center font-bold text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <form onSubmit={handleSsoSubmit} className="p-6 space-y-4">
+              <div className="text-center mb-2">
+                <div className="text-xs bg-slate-50 py-2.5 px-3.5 rounded-xl border border-slate-200/80 font-bold text-slate-600 leading-relaxed">
+                  🔒 <span className="text-[#00C73C]">세라젬 네이버 웍스</span> 계정으로<br />
+                  간편하고 안전하게 로그인하세요.
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1.5">임직원 계정 선택</label>
+                <select 
+                  className="w-full p-3.5 bg-slate-50 border-2 border-slate-900 rounded-xl focus:outline-none transition-all text-slate-800 font-extrabold text-xs md:text-sm"
+                  value={selectedSsoIndex}
+                  onChange={e => setSelectedSsoIndex(Number(e.target.value))}
+                >
+                  {ssoEmployees.map((emp, idx) => (
+                    <option key={emp.email} value={idx}>
+                      [{emp.dept}] {emp.name} ({emp.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1.5">인증 상태</label>
+                <input 
+                  type="text"
+                  value="세라젬 사내인증 완료 (자동연동)"
+                  disabled
+                  className="w-full p-3.5 bg-slate-100 border-2 border-slate-200 text-green-600 rounded-xl font-bold text-xs"
+                />
+              </div>
+
+              <button 
+                type="submit"
+                disabled={ssoLoading}
+                className="w-full py-4 bg-[#00C73C] hover:bg-[#00b335] text-white border-2 border-slate-900 font-black rounded-xl transition-all flex justify-center items-center shadow-brutal-black text-sm mt-6"
+              >
+                {ssoLoading ? (
+                  <Loader className="animate-spin text-white w-4 h-4" />
+                ) : (
+                  '네이버 웍스로 로그인 완료 🚀'
+                )}
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setShowNaverWorks(false)}
+                className="w-full text-[11px] text-slate-400 hover:text-slate-600 font-bold text-center mt-2 transition-colors"
+              >
+                취소하기
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

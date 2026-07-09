@@ -211,7 +211,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
 
   const statsData = CERAGEMERSHIP_VALUES.map(cv => ({
     id: cv.id,
-    name: `가치 ${cv.id}`,
+    name: `세라제머십 ${cv.id}`,
     fullText: cv.text,
     count: allTransactions.filter(tx => tx.core_value_id === cv.id).length
   }));
@@ -281,42 +281,112 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
 
               {/* Ranking Tab */}
               {activeTab === 'ranking' && (
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[500px]">
-                      <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
-                        <tr>
-                          <th className="px-6 py-4 text-left font-semibold">순위</th>
-                          <th className="px-6 py-4 text-left font-semibold">이름</th>
-                          <th className="px-6 py-4 text-left font-semibold">부서</th>
-                          <th className="px-6 py-4 text-right font-semibold">누적 획득 포인트</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {sortedUsersByPoints.map((user, idx) => {
-                          const rankNum = idx + 1;
-                          const isTopThree = rankNum <= 3;
-                          return (
-                            <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4.5">
-                                <span className={`w-6.5 h-6.5 inline-flex items-center justify-center rounded-lg font-bold text-xs ${
-                                  rankNum === 1 ? 'bg-amber-100 text-amber-800' : 
-                                  rankNum === 2 ? 'bg-slate-100 text-slate-700' : 
-                                  rankNum === 3 ? 'bg-orange-50 text-orange-800' : 'text-slate-400'
-                                }`}>
-                                  {rankNum}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4.5 font-semibold text-slate-800 text-xs">{user.name}</td>
-                              <td className="px-6 py-4.5 text-xs text-slate-400 font-medium">{user.department}</td>
-                              <td className="px-6 py-4.5 text-right font-bold text-[#E63946] text-xs">
-                                {((user.received_wallet || 0) + (user.spent_points || 0)).toLocaleString()} P
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                <div className="space-y-8">
+                  {/* Podium Section for Top 3 */}
+                  {sortedUsersByPoints.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                      {/* 2nd Place */}
+                      {sortedUsersByPoints[1] && (
+                        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex flex-col items-center text-center relative overflow-hidden order-2 md:order-1 md:mt-6 transition-all duration-300 hover:shadow-md">
+                          <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-300" />
+                          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border-4 border-slate-200 shadow-inner relative mb-3">
+                            <span className="text-xl font-extrabold text-slate-500">2</span>
+                            <div className="absolute -bottom-1 bg-slate-400 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">SILVER</div>
+                          </div>
+                          <h3 className="font-extrabold text-slate-800 text-base">{sortedUsersByPoints[1].name}</h3>
+                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPoints[1].department || '부서 없음'}</p>
+                          <div className="mt-4 bg-slate-50 border border-slate-100 px-4 py-1.5 rounded-full text-xs font-black text-slate-600">
+                            {((sortedUsersByPoints[1].received_wallet || 0) + (sortedUsersByPoints[1].spent_points || 0)).toLocaleString()} P
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 1st Place */}
+                      {sortedUsersByPoints[0] && (
+                        <div className="bg-white rounded-3xl border-2 border-amber-200 p-8 shadow-md flex flex-col items-center text-center relative overflow-hidden order-1 md:order-2 transform md:-translate-y-2 transition-all duration-300 hover:shadow-lg">
+                          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-yellow-300" />
+                          <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center border-4 border-amber-300 shadow-inner relative mb-3">
+                            <span className="text-2xl font-extrabold text-amber-600">👑</span>
+                            <div className="absolute -bottom-1 bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm">CHAMPION</div>
+                          </div>
+                          <h3 className="font-black text-slate-800 text-lg">{sortedUsersByPoints[0].name}</h3>
+                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPoints[0].department || '부서 없음'}</p>
+                          <div className="mt-4 bg-amber-50 border border-amber-100 px-5 py-2 rounded-full text-sm font-black text-[#E63946] shadow-sm">
+                            {((sortedUsersByPoints[0].received_wallet || 0) + (sortedUsersByPoints[0].spent_points || 0)).toLocaleString()} P
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3rd Place */}
+                      {sortedUsersByPoints[2] && (
+                        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex flex-col items-center text-center relative overflow-hidden order-3 md:order-3 md:mt-6 transition-all duration-300 hover:shadow-md">
+                          <div className="absolute top-0 left-0 w-full h-1.5 bg-orange-300" />
+                          <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center border-4 border-orange-200 shadow-inner relative mb-3">
+                            <span className="text-xl font-extrabold text-orange-600">3</span>
+                            <div className="absolute -bottom-1 bg-orange-400 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">BRONZE</div>
+                          </div>
+                          <h3 className="font-extrabold text-slate-800 text-base">{sortedUsersByPoints[2].name}</h3>
+                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPoints[2].department || '부서 없음'}</p>
+                          <div className="mt-4 bg-slate-50 border border-slate-100 px-4 py-1.5 rounded-full text-xs font-black text-slate-600">
+                            {((sortedUsersByPoints[2].received_wallet || 0) + (sortedUsersByPoints[2].spent_points || 0)).toLocaleString()} P
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Complete Ranking List Table */}
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                      <h2 className="font-extrabold text-slate-800 text-sm">전체 칭찬 랭킹 리스트</h2>
+                      <span className="text-[11px] text-slate-400 font-bold bg-slate-100 px-2.5 py-1 rounded-md">총 {sortedUsersByPoints.length}명</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px]">
+                        <thead className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-100">
+                          <tr>
+                            <th className="px-8 py-4.5 text-left font-extrabold w-28">순위</th>
+                            <th className="px-8 py-4.5 text-left font-extrabold">이름</th>
+                            <th className="px-8 py-4.5 text-left font-extrabold">부서</th>
+                            <th className="px-8 py-4.5 text-right font-extrabold">누적 획득 포인트</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {sortedUsersByPoints.map((user, idx) => {
+                            const rankNum = idx + 1;
+                            return (
+                              <tr key={user.id} className="hover:bg-slate-50/40 transition-all duration-150">
+                                <td className="px-8 py-5">
+                                  <span className={`w-8 h-8 inline-flex items-center justify-center rounded-xl font-extrabold text-xs shadow-sm border ${
+                                    rankNum === 1 ? 'bg-amber-100 text-amber-800 border-amber-200' : 
+                                    rankNum === 2 ? 'bg-slate-100 text-slate-700 border-slate-200' : 
+                                    rankNum === 3 ? 'bg-orange-50 text-orange-800 border-orange-200' : 'bg-white text-slate-400 border-slate-150'
+                                  }`}>
+                                    {rankNum}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-5">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs border border-slate-200/50 shrink-0">
+                                      {user.name.charAt(0)}
+                                    </div>
+                                    <span className="font-extrabold text-slate-800 text-sm">{user.name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5">
+                                  <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1.5 rounded-lg font-bold border border-slate-200/30">
+                                    {user.department || '부서 없음'}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-5 text-right font-black text-[#E63946] text-sm">
+                                  {((user.received_wallet || 0) + (user.spent_points || 0)).toLocaleString()} P
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}

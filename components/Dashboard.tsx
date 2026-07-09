@@ -218,11 +218,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
           <div className="inline-flex items-center gap-1.5 bg-white/20 text-white px-3.5 py-1 rounded-full font-bold text-xs tracking-wider uppercase">
             THANK YOU CERAGEM RUNWAY
           </div>
-          <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight">
+          <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight break-keep">
             오늘도 동료에게<br />
             따뜻한 <span className="text-yellow-300">Thank you CERAGEM</span>을 보내주세요!
           </h1>
-          <p className="text-rose-100 font-medium text-sm lg:text-base max-w-xl">
+          <p className="text-rose-100 font-medium text-sm lg:text-base max-w-xl break-keep">
             가치 있는 일에는 아낌없이 칭찬을, 실패를 두려워하지 않는 동료에게는 진심 어린 응원의 에너지를 전해보세요!
           </p>
           
@@ -391,7 +391,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg truncate max-w-[140px]">
-                        가치 {tx.core_value_id} • {themeStyle.label}
+                        세라제머십 {tx.core_value_id} • {themeStyle.label}
                       </span>
                     </div>
                     <span className="text-xs font-bold text-[#E63946] flex items-center shrink-0 group-hover:translate-x-0.5 transition-transform gap-0.5">

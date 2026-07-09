@@ -76,7 +76,7 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
       .reduce((acc, curr) => acc + (curr.points || 0), 0);
     return {
       id: cv.id,
-      shortName: `가치 ${cv.id}`, 
+      shortName: `세라제머십 ${cv.id}`, 
       name: `세라제머십 ${cv.id}`,
       points,
     };
@@ -194,7 +194,7 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-900 text-sm leading-none">{tx.sender?.name || '알 수 없음'}</span>
                         <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg">
-                          가치 {tx.core_value_id}
+                          세라제머십 {tx.core_value_id}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 truncate mt-2 font-medium">"{tx.message}"</p>
