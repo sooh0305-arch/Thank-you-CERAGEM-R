@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Loader, Heart, ThumbsUp, MessageSquare, Sparkles } from 'lucide-react';
 import { api } from '../lib/api';
+import { signInWithPopup, OAuthProvider, signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 interface LandingPageProps {
   onLogin: (email: string, pass: string) => Promise<string | null>;
@@ -125,6 +127,46 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     const result = await api.sendPasswordReset(emailInput);
     setLoading(false);
     alert(result.message);
+  };
+
+  const handleNaverWorksLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const provider = new OAuthProvider("oidc.naverworks");
+      provider.addScope("openid");
+      
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      if (!user.email || !user.email.toLowerCase().endsWith('@ceragem.com')) {
+        alert("세라젬 임직원 계정(@ceragem.com)만 로그인 가능합니다.");
+        await signOut(auth);
+        setError("세라젬 임직원 계정이 아닙니다.");
+        setLoading(false);
+        return;
+      }
+
+      const emailLower = user.email.toLowerCase().trim();
+      const isEmployee = ssoEmployees.some(emp => emp.email.toLowerCase().trim() === emailLower);
+      
+      if (!isEmployee) {
+        alert("등록된 직원 명단에 이메일이 없습니다. 관리자에게 문의하세요.");
+        await signOut(auth);
+        setError("등록된 직원 명단에 이메일이 없습니다.");
+        setLoading(false);
+        return;
+      }
+    } catch (e: any) {
+      console.error("Naver Works login error:", e);
+      if (e.code === 'auth/popup-closed-by-user') {
+        setError("로그인 창이 닫혔습니다.");
+      } else {
+        setError(`네이버웍스 로그인 실패: ${e.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSsoSubmit = async (e: React.FormEvent) => {
@@ -323,12 +365,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               {/* Naver Works SSO Button */}
               <button 
                 type="button"
-                onClick={() => alert("네이버웍스 SSO 연동 준비 중입니다. 사내 이메일과 비밀번호를 사용하여 로그인해 주세요.")}
-                className="w-full py-3.5 bg-slate-50/50 hover:bg-slate-50 text-slate-400 border border-slate-200 font-bold rounded-xl transition-all flex justify-center items-center shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] text-sm mb-4 cursor-not-allowed"
-                title="SSO 연동 준비 중"
+                onClick={handleNaverWorksLogin}
+                className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-900 font-black rounded-xl transition-all flex justify-center items-center shadow-brutal-black text-sm mb-4"
               >
                 <NaverWorksIcon />
-                <span>네이버 웍스로 시작하기 (준비 중)</span>
+                <span>네이버 웍스로 시작하기</span>
               </button>
 
               <div className="border-t-2 border-slate-900 my-5" />

@@ -208,7 +208,37 @@ export const api = {
   async getUser(id: string): Promise<Profile | null> {
     try {
       const snap = await getDoc(doc(db, getPath("profiles"), id));
-      if (!snap.exists()) return null;
+      if (!snap.exists()) {
+        const authUser = auth.currentUser;
+        if (authUser && authUser.uid === id && authUser.email) {
+          const normalizedEmail = authUser.email.toLowerCase().trim();
+          const empInfo = initialEmployees.find(e => e.email.toLowerCase().trim() === normalizedEmail);
+          if (empInfo) {
+            const newProfile = {
+              id,
+              name: empInfo.name,
+              department: empInfo.dept,
+              role: empInfo.role,
+              giving_budget: 10000,
+              received_wallet: 0,
+              spent_points: 0,
+              created_at: serverTimestamp()
+            };
+            await setDoc(doc(db, "profiles", id), newProfile);
+            return {
+              id,
+              name: empInfo.name,
+              department: empInfo.dept,
+              role: empInfo.role,
+              giving_budget: 10000,
+              received_wallet: 0,
+              spent_points: 0,
+              created_at: new Date().toISOString()
+            } as unknown as Profile;
+          }
+        }
+        return null;
+      }
       const data = snap.data() as Profile;
       
       // Auto-migrate on the fly if not migrated
