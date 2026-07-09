@@ -14,7 +14,7 @@ const Guide: React.FC = () => {
           How to <span className="text-[#E63946] italic">Thank you CERAGEM!</span>
         </h1>
         <p className="text-slate-500 font-medium text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-          동료에게 감사와 칭찬의 마음을 기쁘게 전하세요! 플랫폼의 포인트 이용 정책과 다양한 환급 혜택을 소개합니다.
+          동료에게 감사와 칭찬의 마음을 기쁘게 전하세요! 플랫폼의 포인트 이용 정책과 모바일 기프티콘 구매 방식을 소개합니다.
         </p>
       </div>
 
@@ -35,7 +35,7 @@ const Guide: React.FC = () => {
                 <div>
                   <h4 className="font-bold text-slate-800 text-sm mb-1.5">보내는 예산 ≠ 받는 포인트</h4>
                   <p className="text-xs md:text-[13px] text-slate-600 leading-relaxed font-semibold">
-                    매달 자동 충전되는 <span className="text-[#E63946] font-extrabold">보내는 예산(Giving)</span>은 동료 선물 전용이며, 현금 출금 신청은 동료들에게 <span className="text-[#E63946] font-extrabold">받은 포인트</span>로만 가능합니다!
+                    매달 자동 충전되는 <span className="text-[#E63946] font-extrabold">보내는 예산(Giving)</span>은 동료 선물 전용이며, 기프티콘 구매 신청은 동료들에게 <span className="text-[#E63946] font-extrabold">받은 포인트</span>로만 가능합니다!
                   </p>
                 </div>
               </div>
@@ -121,7 +121,7 @@ const Guide: React.FC = () => {
             <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
               <Gift size={24} />
             </div>
-            <h2 className="text-lg md:text-xl font-extrabold text-slate-800">환급 및 리워드 혜택</h2>
+            <h2 className="text-lg md:text-xl font-extrabold text-slate-800">기프티콘 및 혜택</h2>
           </div>
 
           <div className="space-y-6 flex-1">
@@ -130,10 +130,10 @@ const Guide: React.FC = () => {
               <p className="text-[10px] md:text-xs font-bold text-purple-600 uppercase tracking-wider bg-purple-50 px-2.5 py-1 rounded-md inline-block">BENEFIT 1</p>
               <div className="p-5 bg-purple-50/30 rounded-xl border border-purple-100 text-center">
                 <h4 className="font-bold text-purple-700 text-sm md:text-base mb-2 flex items-center justify-center gap-1.5">
-                  <Wallet size={16} /> 100% 현금 환급 서비스
+                  <Gift size={16} /> 기프티콘 상점 서비스
                 </h4>
                 <p className="text-xs md:text-[13px] text-slate-500 mb-3 font-medium leading-relaxed">
-                  받은 포인트는 1P = 1원 비율로 100% 다음 달 급여에 합산되어 등록된 급여 계좌로 편리하게 환급됩니다. (최소 10,000P 이상 신청 가능)
+                  받은 포인트는 기프티콘 상점에서 네이버페이 포인트 쿠폰 및 CU 모바일 금액권으로 즉시 교환 가능합니다. (최소 1,000P부터 신청 가능!)
                 </p>
                 <div className="h-px w-8 bg-purple-100 mx-auto my-2.5" />
                 <p className="text-xs md:text-sm text-[#E63946] font-bold flex items-center justify-center gap-1">
@@ -150,10 +150,10 @@ const Guide: React.FC = () => {
                   <Trophy size={48} className="text-white" />
                 </div>
                 <h4 className="font-bold text-amber-300 text-sm md:text-base mb-2 flex items-center justify-center gap-1.5">
-                  <Trophy size={14} /> 연말 명예 세라제머 시상
+                  <Trophy size={14} /> 분기별 우수 세라제머 시상
                 </h4>
                 <p className="text-xs md:text-[13px] text-slate-400 mb-3.5 font-medium leading-relaxed">
-                  가장 많은 칭찬 카드를 받고 건강한 소통 문화를 이끌어 준 동료를 연말에 최종 정산하여 대규모 특별 보상과 시상을 진행합니다.
+                  가장 많은 칭찬 카드를 받고 건강한 소통 문화를 이끌어 준 동료를 분기마다 2명 선정하여 특별 보상과 시상을 진행합니다.
                 </p>
                 <div className="inline-flex items-center gap-1.5 bg-slate-800 px-3 py-1 rounded border border-slate-700">
                   <Star size={10} className="text-amber-300 fill-amber-300" />
