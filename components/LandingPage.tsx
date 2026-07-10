@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Loader, Heart, ThumbsUp, MessageSquare, Sparkles } from 'lucide-react';
-import { api } from '../lib/api';
+import { api, initialEmployees } from '../lib/api';
 import { signInWithPopup, OAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
@@ -148,7 +148,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       }
 
       const emailLower = user.email.toLowerCase().trim();
-      const isEmployee = ssoEmployees.some(emp => emp.email.toLowerCase().trim() === emailLower);
+      const isEmployee = initialEmployees.some(emp => emp.email.toLowerCase().trim() === emailLower);
       
       if (!isEmployee) {
         alert("등록된 직원 명단에 이메일이 없습니다. 관리자에게 문의하세요.");
@@ -159,7 +159,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       }
     } catch (e: any) {
       console.error("Naver Works login error:", e);
-      if (e.code === 'auth/popup-closed-by-user') {
+      if (e.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        const msg = `[Firebase 도메인 승인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.`;
+        alert(msg);
+        setError("Firebase 승인되지 않은 도메인 오류입니다. (안내 팝업을 확인해 주세요.)");
+      } else if (e.code === 'auth/popup-closed-by-user') {
         setError("로그인 창이 닫혔습니다.");
       } else {
         setError(`네이버웍스 로그인 실패: ${e.message}`);

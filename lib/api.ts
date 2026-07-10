@@ -29,7 +29,7 @@ import { Profile, Transaction, Withdrawal, Notification } from "../types";
 
 const getPath = (name: string) => name;
 
-const initialEmployees = [
+export const initialEmployees = [
   { name: "이동현", email: "sooh@ceragem.com", dept: "세라제머육성팀", role: "admin", password: "educeragem01" },
   { name: "조진국", email: "jkcho@ceragem.com", dept: "세라제머육성팀", role: "user", password: "000000" },
   { name: "김우진", email: "kwoozin123@ceragem.com", dept: "세라제머육성팀", role: "user", password: "000000" },
