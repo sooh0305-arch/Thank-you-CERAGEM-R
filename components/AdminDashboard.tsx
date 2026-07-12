@@ -408,10 +408,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                         {users.filter(u => u.name.includes(searchTerm) || u.department.includes(searchTerm)).map(user => (
                           <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                             <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
-                                  {user.name.charAt(0)}
-                                </div>
+                              <div className="flex items-center">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
                                     <span className="font-semibold text-slate-800 text-xs">{user.name}</span>
@@ -867,7 +864,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                   <span className="text-[9px] font-bold uppercase tracking-wider">Message</span>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <p className="text-slate-700 text-xs leading-relaxed whitespace-pre-wrap font-medium italic">
+                  <p className="text-slate-700 text-xs leading-relaxed whitespace-pre-wrap font-normal">
                     "{selectedPraiseDetail.message}"
                   </p>
                 </div>

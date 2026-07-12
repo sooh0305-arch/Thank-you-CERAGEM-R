@@ -144,10 +144,7 @@ const SendModal: React.FC<SendModalProps> = ({ isOpen, onClose, currentUser, use
                           : 'border-slate-100 hover:bg-slate-50/50 bg-white'
                       }`}
                     >
-                      <div className="flex items-center space-x-3 text-left">
-                        <div className="w-10 h-10 shrink-0 rounded-xl bg-[#E63946]/10 text-[#E63946] flex items-center justify-center font-bold text-xs">
-                          {u.name.charAt(0)}
-                        </div>
+                      <div className="flex items-center text-left">
                         <div className="min-w-0">
                           <p className="font-bold text-slate-800 text-sm leading-tight">{u.name}</p>
                           <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-1">{u.department}</p>

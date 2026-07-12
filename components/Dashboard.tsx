@@ -288,55 +288,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
         </div>
       </div>
 
-      {/* Ceragemership 7 Values Section - Redesigned to colorful, blocky 3D-feeling bento cards */}
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-          <div>
-            <h2 className="text-lg lg:text-xl font-bold text-slate-900 flex items-center gap-2">
-              <span>세라제머십 7대 핵심가치 카드</span>
-            </h2>
-            <p className="text-xs text-slate-400 font-medium mt-1">원하는 핵심가치를 클릭하면 해당 가치가 pre-selected된 칭찬 모달이 열립니다!</p>
-          </div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] self-start sm:self-center">CHOOSE AND CELEBRATE</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {CERAGEMERSHIP_VALUES.map((cv, index) => {
-            const style = valueStyles[index] || valueStyles[0];
-            return (
-              <div 
-                key={cv.id}
-                onClick={() => handleOpenPraiseWithCoreValue(cv.id)}
-                className="group flex flex-col h-full bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden"
-              >
-                {/* Accent Header Block */}
-                <div className="bg-slate-50 px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{style.emoji}</span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700">{style.label}</span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-400 bg-white border border-slate-100 px-2 py-0.5 rounded-lg">
-                    {cv.id.toString().padStart(2, '0')}
-                  </span>
-                </div>
-
-                {/* Body message content */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <p className="text-xs lg:text-sm font-semibold leading-relaxed text-slate-600 tracking-tight">
-                    {cv.text}
-                  </p>
-                  
-                  <div className="pt-2 flex items-center justify-between text-xs font-bold text-slate-400 group-hover:text-[#E63946] transition-colors border-t border-slate-100/60">
-                    <span>칭찬 카드 작성하기</span>
-                    <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Praise Feed Section - Clean live activity feed */}
       <div className="space-y-5">
         <div className="flex items-center justify-between px-1">
@@ -369,10 +320,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
                   className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer relative overflow-hidden"
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <div className="w-10 h-10 shrink-0 rounded-xl bg-[#E63946]/10 text-[#E63946] flex items-center justify-center font-bold text-sm">
-                        {tx.receiver?.name.charAt(0) || '?'}
-                      </div>
+                    <div className="flex items-center min-w-0">
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900 text-sm leading-none truncate">{tx.receiver?.name || '동료'}</p>
                         <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1 truncate">{tx.receiver?.department || 'CERAGEM'}</p>
@@ -382,7 +330,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
 
                   <div className="relative mb-4 min-h-[55px]">
                     <Quote size={16} className="text-rose-100 absolute -top-1.5 -left-1 rotate-180 opacity-60" />
-                    <p className="text-xs lg:text-sm text-slate-600 leading-relaxed pl-4 font-semibold line-clamp-3 italic">
+                    <p className="text-xs lg:text-sm text-slate-600 leading-relaxed pl-4 font-normal line-clamp-3">
                       "{tx.message}"
                     </p>
                   </div>
@@ -421,10 +369,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
             </div>
 
             <div className="p-6 lg:p-8 space-y-6 overflow-y-auto max-h-[65vh]">
-              <div className="flex items-center space-x-4 p-5 bg-slate-50/50 border border-slate-100 rounded-2xl shadow-sm">
-                <div className="w-12 h-12 shrink-0 rounded-xl bg-[#E63946]/10 text-[#E63946] flex items-center justify-center font-bold text-lg">
-                  {selectedPraise.receiver?.name.charAt(0)}
-                </div>
+              <div className="flex items-center p-5 bg-slate-50/50 border border-slate-100 rounded-2xl shadow-sm">
                 <div className="min-w-0">
                   <span className="text-base font-bold text-slate-800 truncate block leading-tight">{selectedPraise.receiver?.name}</span>
                   <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest mt-0.5">{selectedPraise.receiver?.department}</p>
@@ -438,7 +383,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
                 </div>
                 <div className="bg-slate-50/30 p-5 rounded-2xl border border-slate-100 relative">
                   <Quote size={20} className="text-rose-100 absolute -top-1 -left-1 rotate-180 opacity-50" />
-                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-semibold italic relative z-10 pl-2">
+                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-normal relative z-10 pl-2">
                     "{selectedPraise.message}"
                   </p>
                 </div>

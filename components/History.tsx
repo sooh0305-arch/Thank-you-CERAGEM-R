@@ -186,10 +186,7 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
                   onClick={() => setSelectedPraise(tx)}
                   className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-4 group animate-fade-in"
                 >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 shrink-0 rounded-xl bg-[#E63946]/10 text-[#E63946] flex items-center justify-center font-bold text-base">
-                      {tx.sender?.name.charAt(0) || '?'}
-                    </div>
+                  <div className="flex items-center min-w-0">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-900 text-sm leading-none">{tx.sender?.name || '알 수 없음'}</span>
@@ -231,10 +228,7 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
 
             <div className="p-6 lg:p-8 space-y-6 overflow-y-auto max-h-[70vh]">
               <div className="flex items-center justify-between p-5 bg-slate-50/50 border border-slate-100 rounded-2xl shadow-sm">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-xl bg-[#E63946]/10 text-[#E63946] flex items-center justify-center font-bold text-lg">
-                     {selectedPraise.sender?.name.charAt(0) || '?'}
-                   </div>
+                <div className="flex items-center">
                    <div>
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">SENDER</p>
                      <p className="font-bold text-slate-950 text-base">
@@ -256,7 +250,7 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
                 </div>
                 <div className="bg-slate-50/30 p-5 rounded-2xl border border-slate-100 relative">
                   <Quote size={20} className="text-rose-100 absolute -top-1 -left-1 rotate-180 opacity-50" />
-                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-semibold italic relative z-10 pl-2">
+                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-normal relative z-10 pl-2">
                     "{selectedPraise.message}"
                   </p>
                 </div>

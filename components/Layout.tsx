@@ -81,10 +81,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPage, 
 
         {/* User Profile Footer */}
         <div className="relative z-10 p-6 border-t border-slate-800 bg-slate-900">
-          <div className="flex items-center space-x-3 mb-5">
-            <div className="w-10 h-10 shrink-0 rounded-xl bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/20 flex items-center justify-center font-bold">
-              {user.name.charAt(0)}
-            </div>
+          <div className="flex items-center mb-5">
             <div className="min-w-0">
               <p className="text-sm font-bold text-white leading-tight truncate">{user.name}</p>
               <p className="text-xs text-slate-400 truncate mt-0.5">{user.department}</p>
