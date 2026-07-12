@@ -258,10 +258,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
 
           <div className="pt-2">
             <button
-              onClick={() => onNavigate('withdrawal')}
+              onClick={() => onNavigate('giftshop')}
               className="w-full bg-slate-900 hover:bg-[#E63946] active:scale-[0.98] text-white font-bold text-xs lg:text-sm py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
-              <span>출금 신청하러 가기</span>
+              <span>기프티콘 교환하러 가기</span>
             </button>
           </div>
         </div>
