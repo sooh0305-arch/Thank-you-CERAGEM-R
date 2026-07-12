@@ -7,8 +7,7 @@ const Guide: React.FC = () => {
       {/* Header Section */}
       <div className="text-center space-y-5">
         <div className="inline-flex items-center gap-2.5 bg-[#E63946]/5 px-4.5 py-2.5 rounded-full border border-[#E63946]/15">
-          <Heart size={16} className="text-[#E63946] fill-[#E63946]" />
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Thank you CERAGEM 가이드북 📖</span>
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Thank you CERAGEM 가이드북</span>
         </div>
         <h1 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight">
           How to <span className="text-[#E63946] italic">Thank you CERAGEM!</span>
@@ -23,7 +22,7 @@ const Guide: React.FC = () => {
         <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col h-full hover:shadow-md transition-all duration-300">
           <div className="flex items-center gap-3.5 mb-6">
             <div className="p-3 bg-[#E63946]/5 rounded-xl text-[#E63946]">
-              <Coins size={24} />
+              <HelpCircle size={24} />
             </div>
             <h2 className="text-lg md:text-xl font-extrabold text-slate-800">포인트 이용 규칙</h2>
           </div>
@@ -78,7 +77,7 @@ const Guide: React.FC = () => {
         <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col h-full hover:shadow-md transition-all duration-300">
           <div className="flex items-center gap-3.5 mb-6">
             <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-              <Heart size={24} />
+              <Sparkles size={24} />
             </div>
             <h2 className="text-lg md:text-xl font-extrabold text-slate-800">칭찬하는 방법</h2>
           </div>
@@ -119,7 +118,7 @@ const Guide: React.FC = () => {
         <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col h-full hover:shadow-md transition-all duration-300">
           <div className="flex items-center gap-3.5 mb-6">
             <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-              <Gift size={24} />
+              <Star size={24} />
             </div>
             <h2 className="text-lg md:text-xl font-extrabold text-slate-800">기프티콘 및 혜택</h2>
           </div>
@@ -130,14 +129,14 @@ const Guide: React.FC = () => {
               <p className="text-[10px] md:text-xs font-bold text-purple-600 uppercase tracking-wider bg-purple-50 px-2.5 py-1 rounded-md inline-block">BENEFIT 1</p>
               <div className="p-5 bg-purple-50/30 rounded-xl border border-purple-100 text-center">
                 <h4 className="font-bold text-purple-700 text-sm md:text-base mb-2 flex items-center justify-center gap-1.5">
-                  <Gift size={16} /> 기프티콘 상점 서비스
+                  기프티콘 상점 서비스
                 </h4>
                 <p className="text-xs md:text-[13px] text-slate-500 mb-3 font-medium leading-relaxed">
-                  받은 포인트는 기프티콘 상점에서 네이버페이 포인트 쿠폰 및 CU 모바일 금액권으로 즉시 교환 가능합니다. (최소 1,000P부터 신청 가능!)
+                  받은 포인트는 기프티콘 상점에서 네이버페이 포인트 쿠폰 및 CU 모바일 금액권으로 교환 신청이 가능하며, <strong className="text-purple-700 font-extrabold">기프티콘 발송은 매월 마지막일에 발송됩니다.</strong> (최소 1,000P부터 신청 가능!)
                 </p>
                 <div className="h-px w-8 bg-purple-100 mx-auto my-2.5" />
                 <p className="text-xs md:text-sm text-[#E63946] font-bold flex items-center justify-center gap-1">
-                  ✨ 나만의 진정한 가치 보상을 만나세요!
+                  나만의 진정한 가치 보상을 만나세요!
                 </p>
               </div>
             </div>
@@ -167,7 +166,7 @@ const Guide: React.FC = () => {
 
       <div className="text-center pt-8 border-t border-slate-100">
         <p className="text-sm md:text-base font-bold text-slate-400 tracking-wider">
-          서로를 아끼고 인정하는 생동감 넘치는 일터, <span className="text-[#E63946] font-bold underline">Thank you CERAGEM</span>이 함께 만들어갑니다. 💖
+          서로를 아끼고 인정하는 생동감 넘치는 일터, <span className="text-[#E63946] font-bold underline">Thank you CERAGEM</span>이 함께 만들어갑니다.
         </p>
       </div>
     </div>

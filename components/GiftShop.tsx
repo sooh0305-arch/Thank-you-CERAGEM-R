@@ -164,8 +164,7 @@ const GiftShop: React.FC<GiftShopProps> = ({ user, refreshData }) => {
       {/* Title Header */}
       <div className="text-center md:text-left space-y-3">
         <div className="inline-flex items-center gap-2 bg-[#742CB7]/5 px-4 py-2 rounded-full border border-[#742CB7]/15">
-          <Gift size={15} className="text-[#742CB7]" />
-          <span className="text-xs font-bold text-slate-700 tracking-wider">받은 포인트로 인기 모바일 상품권을 구매해보세요! 🎁</span>
+          <span className="text-xs font-bold text-slate-700 tracking-wider">받은 포인트로 인기 모바일 상품권을 구매해보세요!</span>
         </div>
         <h1 className="text-3xl md:text-5xl font-black text-slate-800 tracking-tight leading-tight">기프티콘/상품권 상점</h1>
         <p className="text-xs sm:text-sm md:text-base text-slate-500 font-medium max-w-none leading-relaxed break-keep md:whitespace-nowrap">

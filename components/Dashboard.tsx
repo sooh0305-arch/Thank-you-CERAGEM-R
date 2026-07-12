@@ -261,7 +261,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
               onClick={() => onNavigate('withdrawal')}
               className="w-full bg-slate-900 hover:bg-[#E63946] active:scale-[0.98] text-white font-bold text-xs lg:text-sm py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
-              <span>출금 신청하러 가기 💸</span>
+              <span>출금 신청하러 가기</span>
             </button>
           </div>
         </div>
@@ -291,8 +291,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
       {/* Praise Feed Section - Clean live activity feed */}
       <div className="space-y-5">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-lg lg:text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Heart size={18} className="text-[#E63946] fill-[#E63946]" />
+          <h2 className="text-lg lg:text-xl font-bold text-slate-900">
             칭찬 피드 런웨이
           </h2>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Global Live Activity</span>
@@ -329,8 +328,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
                   </div>
 
                   <div className="relative mb-4 min-h-[55px]">
-                    <Quote size={16} className="text-rose-100 absolute -top-1.5 -left-1 rotate-180 opacity-60" />
-                    <p className="text-xs lg:text-sm text-slate-600 leading-relaxed pl-4 font-normal line-clamp-3">
+                    <p className="text-xs lg:text-sm text-slate-600 leading-relaxed font-normal line-clamp-3">
                       "{tx.message}"
                     </p>
                   </div>
@@ -357,10 +355,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl border border-slate-100 shadow-xl w-full max-w-lg overflow-hidden transform animate-scale-in">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-[#E63946]/10 text-[#E63946] rounded-xl">
-                  <Heart size={16} fill="currentColor" />
-                </div>
+              <div className="flex items-center">
                 <h3 className="text-base font-bold text-slate-800">칭찬 카드 상세</h3>
               </div>
               <button onClick={() => setSelectedPraise(null)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
@@ -382,8 +377,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
                   <span className="text-[10px] font-bold uppercase tracking-widest">MESSAGE</span>
                 </div>
                 <div className="bg-slate-50/30 p-5 rounded-2xl border border-slate-100 relative">
-                  <Quote size={20} className="text-rose-100 absolute -top-1 -left-1 rotate-180 opacity-50" />
-                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-normal relative z-10 pl-2">
+                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-normal relative z-10">
                     "{selectedPraise.message}"
                   </p>
                 </div>
@@ -433,10 +427,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl border border-slate-100 shadow-xl w-full max-w-md overflow-hidden transform animate-scale-in">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-[#E63946]/10 text-[#E63946] rounded-xl">
-                  <span className="text-lg leading-none">💸</span>
-                </div>
+              <div className="flex items-center">
                 <h3 className="text-base font-bold text-slate-800">현금 출금 신청</h3>
               </div>
               <button 
@@ -549,7 +540,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
                       <span>신청 중...</span>
                     </>
                   ) : (
-                    <span>신청하기 🚀</span>
+                    <span>신청하기</span>
                   )}
                 </button>
               </div>

@@ -163,8 +163,7 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
       {/* List Section */}
       <div className="space-y-5">
         <div className="px-1 flex items-center justify-between">
-          <h3 className="font-bold text-base lg:text-lg text-slate-900 flex items-center gap-2">
-            <Heart size={18} className="text-[#E63946] fill-[#E63946]" />
+          <h3 className="font-bold text-base lg:text-lg text-slate-900">
             도착한 칭찬 리스트
           </h3>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Real-time update active</p>
@@ -215,10 +214,7 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl border border-slate-100 shadow-xl w-full max-w-lg overflow-hidden transform animate-scale-in">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-[#E63946]/10 text-[#E63946] rounded-xl">
-                  <Heart size={16} fill="currentColor" />
-                </div>
+              <div className="flex items-center">
                 <h3 className="text-base font-bold text-slate-800">칭찬 카드 상세</h3>
               </div>
               <button onClick={() => setSelectedPraise(null)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
@@ -245,12 +241,11 @@ const History: React.FC<HistoryProps> = ({ user, users }) => {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 text-slate-400">
-                  <Quote size={14} className="rotate-180" />
+                  <MessageSquare size={14} />
                   <span className="text-[10px] font-bold uppercase tracking-widest">MESSAGE CARD</span>
                 </div>
                 <div className="bg-slate-50/30 p-5 rounded-2xl border border-slate-100 relative">
-                  <Quote size={20} className="text-rose-100 absolute -top-1 -left-1 rotate-180 opacity-50" />
-                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-normal relative z-10 pl-2">
+                  <p className="text-slate-700 text-sm lg:text-base leading-relaxed whitespace-pre-wrap font-normal relative z-10">
                     "{selectedPraise.message}"
                   </p>
                 </div>
