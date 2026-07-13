@@ -6,13 +6,13 @@ const Guide: React.FC = () => {
     <div className="max-w-6xl mx-auto space-y-12 animate-fade-in pb-16">
       {/* Header Section */}
       <div className="text-center space-y-5">
-        <div className="inline-flex items-center gap-2.5 bg-[#E63946]/5 px-4.5 py-2.5 rounded-full border border-[#E63946]/15">
+        <div className="inline-flex items-center gap-2.5 bg-[#E63946]/5 px-6 py-2.5 rounded-full border border-[#E63946]/15">
           <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Thank you CERAGEM 가이드북</span>
         </div>
         <h1 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight">
           How to <span className="text-[#E63946] italic">Thank you CERAGEM!</span>
         </h1>
-        <p className="text-slate-500 font-medium text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="text-slate-500 font-medium text-base md:text-lg max-w-none leading-relaxed">
           동료에게 감사와 칭찬의 마음을 기쁘게 전하세요! 플랫폼의 포인트 이용 정책과 모바일 기프티콘 구매 방식을 소개합니다.
         </p>
       </div>
