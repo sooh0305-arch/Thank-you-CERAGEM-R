@@ -110,6 +110,25 @@ const App: React.FC = () => {
     setUnreadNotifications([]);
   };
 
+  const handleNotificationClickInHeader = async (notif: Notification) => {
+    try {
+      await api.markNotificationRead(notif.id);
+      setCurrentPage('history');
+    } catch (err) {
+      console.error("Failed to handle notification click", err);
+    }
+  };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    try {
+      for (const n of unreadNotifications) {
+        await api.markNotificationRead(n.id);
+      }
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
+    }
+  };
+
   const refreshData = async () => {
     loadAppData();
   };
@@ -135,7 +154,9 @@ const App: React.FC = () => {
         currentPage={currentPage}
         onNavigate={setCurrentPage}
         onChangePassword={() => setIsPasswordModalOpen(true)}
-        unreadCount={unreadNotifications.length}
+        unreadNotifications={unreadNotifications}
+        onNotificationClick={handleNotificationClickInHeader}
+        onMarkAllAsRead={handleMarkAllNotificationsAsRead}
       >
         <div className="animate-fade-in">
           {currentPage === 'dashboard' && (
@@ -143,7 +164,6 @@ const App: React.FC = () => {
               user={currentUser} 
               allUsers={allUsers}
               refreshData={refreshData}
-              unreadNotifications={unreadNotifications}
               onNavigate={setCurrentPage}
             />
           )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Trophy, Users, Heart, MessageSquare, Quote, X, ChevronRight, Bell, Check, Loader2, Sparkles, Star, ThumbsUp, HelpCircle, AlertCircle } from 'lucide-react';
-import { Profile, Transaction, Notification } from '../types';
+import { Profile, Transaction } from '../types';
 import SendModal from './SendModal';
 import { api } from '../lib/api';
 import { CERAGEMERSHIP_VALUES } from '../constants';
@@ -11,17 +11,15 @@ interface DashboardProps {
   user: Profile;
   allUsers: Profile[];
   refreshData: () => void;
-  unreadNotifications: Notification[];
   onNavigate: (page: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unreadNotifications, onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, onNavigate }) => {
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [selectedCoreValueId, setSelectedCoreValueId] = useState<number | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [selectedPraise, setSelectedPraise] = useState<Transaction | null>(null);
-  const [isNotifLoading, setIsNotifLoading] = useState<string | null>(null);
 
   // Withdrawal States
   const [isWithdrawalOpen, setIsWithdrawalOpen] = useState(false);
@@ -109,36 +107,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
     });
   };
 
-  const handleNotificationClick = async (notif: Notification) => {
-    if (isNotifLoading) return;
-    setIsNotifLoading(notif.id);
-    
-    try {
-      await api.markNotificationRead(notif.id);
-      if (notif.transaction_id) {
-        const tx = await api.getTransaction(notif.transaction_id);
-        if (tx) {
-          setSelectedPraise(tx);
-        }
-      }
-    } catch (err) {
-      console.error("Notification handling error", err);
-    } finally {
-      setIsNotifLoading(null);
-    }
-  };
-
-  const handleMarkAsRead = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    await api.markNotificationRead(id);
-  };
-
-  const handleMarkAllAsRead = async () => {
-    for (const n of unreadNotifications) {
-      await api.markNotificationRead(n.id);
-    }
-  };
-
   const getCeragemershipText = (id: number) => {
     return CERAGEMERSHIP_VALUES.find(cv => cv.id === id)?.text || '세라제머십';
   };
@@ -169,44 +137,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, unre
 
   return (
     <div className="space-y-8 lg:space-y-12">
-      {/* 칭찬 알림 배너 (개인 알람) - Clean minimal style */}
-      {unreadNotifications.length > 0 && (
-        <div className="animate-fade-in space-y-3">
-          {unreadNotifications.map(notif => (
-            <div 
-              key={notif.id} 
-              onClick={() => handleNotificationClick(notif)}
-              className={`bg-white rounded-2xl p-5 border border-amber-200/60 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group cursor-pointer hover:bg-amber-50/20 transition-all ${isNotifLoading === notif.id ? 'opacity-70 grayscale-[0.5]' : ''}`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#E63946]/10 text-[#E63946] rounded-xl flex items-center justify-center shrink-0">
-                  {isNotifLoading === notif.id ? <Loader2 size={18} className="animate-spin" /> : <Bell size={18} />}
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                    칭찬 배달 완료! 💌
-                  </h4>
-                  <p className="text-xs lg:text-sm text-slate-600 font-medium mt-0.5">{notif.message}</p>
-                </div>
-              </div>
-              <button 
-                onClick={(e) => handleMarkAsRead(e, notif.id)}
-                className="w-full sm:w-auto px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-[#E63946] transition-colors font-semibold text-xs flex items-center justify-center gap-1.5"
-              >
-                <Check size={12} />
-                <span>확인함</span>
-              </button>
-            </div>
-          ))}
-          <button 
-            onClick={handleMarkAllAsRead}
-            className="w-full py-2 text-[10px] font-bold text-slate-400 hover:text-[#E63946] transition-colors uppercase tracking-[0.2em]"
-          >
-            모든 알림 지우기
-          </button>
-        </div>
-      )}
-
       {/* Hero Section - Clean flat premium design */}
       <div className="bg-[#E63946] rounded-3xl p-8 lg:p-12 text-white relative overflow-hidden shadow-sm">
         {/* Subtle background decorative element */}

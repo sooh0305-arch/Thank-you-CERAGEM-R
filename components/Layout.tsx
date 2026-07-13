@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Home, History, Settings, LogOut, Lock, ShoppingBag, Menu, X, Bell, HelpCircle, Camera, Award, Wallet } from 'lucide-react';
-import { Profile } from '../types';
+import { Profile, Notification } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,11 +9,24 @@ interface LayoutProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   onChangePassword: () => void;
-  unreadCount: number;
+  unreadNotifications: Notification[];
+  onNotificationClick: (notif: Notification) => Promise<void>;
+  onMarkAllAsRead: () => Promise<void>;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPage, onNavigate, onChangePassword, unreadCount }) => {
+const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  user, 
+  onLogout, 
+  currentPage, 
+  onNavigate, 
+  onChangePassword, 
+  unreadNotifications, 
+  onNotificationClick, 
+  onMarkAllAsRead 
+}) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', icon: Home, label: '홈' },
@@ -128,15 +141,75 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPage, 
            
            <div className="flex items-center space-x-3 lg:space-x-4">
               {/* Notification Badge in Header */}
-              <button 
-                onClick={() => onNavigate('dashboard')}
-                className="relative p-2 text-slate-600 hover:text-[#E63946] transition-colors rounded-xl hover:bg-slate-100"
-              >
-                <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E63946] rounded-full ring-2 ring-[#FAF9F6]" />
+              <div className="relative">
+                <button 
+                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                  className="relative p-2 text-slate-600 hover:text-[#E63946] transition-colors rounded-xl hover:bg-slate-100"
+                >
+                  <Bell size={20} />
+                  {unreadNotifications.length > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E63946] rounded-full ring-2 ring-[#FAF9F6]" />
+                  )}
+                </button>
+
+                {/* Dropdown Card */}
+                {isNotifOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsNotifOpen(false)} 
+                    />
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-slate-100 shadow-xl py-3 z-50 animate-scale-in">
+                      <div className="px-4 pb-2 border-b border-slate-50 flex items-center justify-between">
+                        <span className="font-bold text-sm text-slate-800">알림</span>
+                        {unreadNotifications.length > 0 && (
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              setIsNotifOpen(false);
+                              await onMarkAllAsRead();
+                            }}
+                            className="text-[10px] text-[#E63946] hover:underline font-bold"
+                          >
+                            모두 읽음
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="max-h-64 overflow-y-auto divide-y divide-slate-50">
+                        {unreadNotifications.length === 0 ? (
+                          <div className="py-8 text-center">
+                            <Bell size={24} className="text-slate-300 mx-auto mb-2" />
+                            <p className="text-xs text-slate-400 font-medium">도착한 새로운 알림이 없습니다.</p>
+                          </div>
+                        ) : (
+                          unreadNotifications.map((notif) => (
+                            <button
+                              key={notif.id}
+                              onClick={async () => {
+                                setIsNotifOpen(false);
+                                await onNotificationClick(notif);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-3"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-red-50 text-[#E63946] flex items-center justify-center shrink-0 mt-0.5">
+                                <Bell size={14} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-slate-800">칭찬 배달 완료! 💌</p>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">{notif.message}</p>
+                                <p className="text-[9px] text-slate-400 mt-1 font-medium">
+                                  {new Date(notif.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
-              </button>
+              </div>
 
               <div className="h-5 w-px bg-slate-200" />
 
