@@ -9,15 +9,29 @@ import { getAuth } from "firebase-admin/auth";
 import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 
-// Initialize Firebase Admin
-if (!getApps().length) {
-  initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID || "peer-bonus-60c3c",
-  });
+// Lazy initialization helpers for Firebase Admin
+function getAdmin() {
+  if (!getApps().length) {
+    try {
+      initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || "peer-bonus-60c3c",
+      });
+    } catch (e) {
+      console.error("[Firebase Admin] Lazy initializeApp error:", e);
+    }
+  }
 }
 
-const db = getFirestore();
-const adminAuth = getAuth();
+function getAdminAuth() {
+  getAdmin();
+  return getAuth();
+}
+
+function getAdminDb() {
+  getAdmin();
+  return getFirestore();
+}
+
 const CACHE_COLLECTION = "samlRequestCache";
 const REQUEST_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
 
@@ -29,6 +43,7 @@ const firestoreCacheProvider = {
     const expiresAtMs = Date.now() + REQUEST_TTL_MS;
     memoryCache.set(key, { value, expiresAt: expiresAtMs });
     try {
+      const db = getAdminDb();
       await db.collection(CACHE_COLLECTION).doc(key).set({
         value,
         createdAt: FieldValue.serverTimestamp(),
@@ -50,6 +65,7 @@ const firestoreCacheProvider = {
       return mem.value;
     }
     try {
+      const db = getAdminDb();
       const doc = await db.collection(CACHE_COLLECTION).doc(key).get();
       if (!doc.exists) return null;
       const data = doc.data();
@@ -66,6 +82,7 @@ const firestoreCacheProvider = {
   async removeAsync(key: string) {
     memoryCache.delete(key);
     try {
+      const db = getAdminDb();
       const doc = await db.collection(CACHE_COLLECTION).doc(key).get();
       if (doc.exists) {
         await db.collection(CACHE_COLLECTION).doc(key).delete();
@@ -211,11 +228,12 @@ async function startServer() {
       }
 
       // Create/Get Firebase user & issue custom token
+      const authClient = getAdminAuth();
       const uid = "nw_" + crypto.createHash("sha256").update(email).digest("hex").slice(0, 28);
       try {
-        await adminAuth.getUser(uid);
+        await authClient.getUser(uid);
       } catch {
-        await adminAuth.createUser({
+        await authClient.createUser({
           uid,
           email,
           emailVerified: true,
@@ -223,7 +241,7 @@ async function startServer() {
         });
       }
 
-      const customToken = await adminAuth.createCustomToken(uid, {
+      const customToken = await authClient.createCustomToken(uid, {
         loginMethod: "naverworks-saml",
         email: email,
       });
@@ -321,7 +339,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
+    app.use((_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
