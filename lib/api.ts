@@ -205,37 +205,40 @@ export const api = {
     }
   },
 
+  async ensureProfileExists(uid: string, email: string, displayName?: string | null): Promise<Profile> {
+    const docRef = doc(db, "profiles", uid);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as Profile;
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+    const empInfo = initialEmployees.find(e => e.email.toLowerCase().trim() === normalizedEmail);
+    const newProfile = {
+      id: uid,
+      name: empInfo ? empInfo.name : (displayName || email.split('@')[0]),
+      department: empInfo ? empInfo.dept : "세라제머",
+      role: empInfo ? empInfo.role : "user",
+      giving_budget: 10000,
+      received_wallet: 0,
+      spent_points: 0,
+      created_at: serverTimestamp(),
+      points_migrated: true
+    };
+    await setDoc(docRef, newProfile);
+    return {
+      id: uid,
+      ...newProfile,
+      created_at: new Date().toISOString()
+    } as unknown as Profile;
+  },
+
   async getUser(id: string): Promise<Profile | null> {
     try {
       const snap = await getDoc(doc(db, getPath("profiles"), id));
       if (!snap.exists()) {
         const authUser = auth.currentUser;
         if (authUser && authUser.uid === id && authUser.email) {
-          const normalizedEmail = authUser.email.toLowerCase().trim();
-          const empInfo = initialEmployees.find(e => e.email.toLowerCase().trim() === normalizedEmail);
-          if (empInfo) {
-            const newProfile = {
-              id,
-              name: empInfo.name,
-              department: empInfo.dept,
-              role: empInfo.role,
-              giving_budget: 10000,
-              received_wallet: 0,
-              spent_points: 0,
-              created_at: serverTimestamp()
-            };
-            await setDoc(doc(db, "profiles", id), newProfile);
-            return {
-              id,
-              name: empInfo.name,
-              department: empInfo.dept,
-              role: empInfo.role,
-              giving_budget: 10000,
-              received_wallet: 0,
-              spent_points: 0,
-              created_at: new Date().toISOString()
-            } as unknown as Profile;
-          }
+          return await this.ensureProfileExists(id, authUser.email, authUser.displayName);
         }
         return null;
       }

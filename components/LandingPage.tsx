@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Loader, Heart, ThumbsUp, MessageSquare, Sparkles } from 'lucide-react';
 import { api, initialEmployees } from '../lib/api';
-import { signInWithPopup, OAuthProvider, signOut } from 'firebase/auth';
+import { signInWithPopup, OAuthProvider, SAMLAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface LandingPageProps {
@@ -133,10 +133,28 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      const provider = new OAuthProvider("oidc.naverworks");
-      provider.addScope("openid");
-      
-      const result = await signInWithPopup(auth, provider);
+      let result;
+      // 1. Try SAML Provider ("saml.naverworks")
+      try {
+        const samlProvider = new SAMLAuthProvider("saml.naverworks");
+        result = await signInWithPopup(auth, samlProvider);
+      } catch (saml1Err: any) {
+        if (saml1Err.code === 'auth/invalid-provider-id' || saml1Err.code === 'auth/operation-not-allowed') {
+          try {
+            // 2. Try fallback SAML Provider ("saml.naverworks-saml")
+            const samlProvider2 = new SAMLAuthProvider("saml.naverworks-saml");
+            result = await signInWithPopup(auth, samlProvider2);
+          } catch (saml2Err: any) {
+            // 3. Fallback to OAuth OIDC ("oidc.naverworks")
+            const oidcProvider = new OAuthProvider("oidc.naverworks");
+            oidcProvider.addScope("openid");
+            result = await signInWithPopup(auth, oidcProvider);
+          }
+        } else {
+          throw saml1Err;
+        }
+      }
+
       const user = result.user;
       
       if (!user.email || !user.email.toLowerCase().endsWith('@ceragem.com')) {
@@ -147,27 +165,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
         return;
       }
 
-      const emailLower = user.email.toLowerCase().trim();
-      const isEmployee = initialEmployees.some(emp => emp.email.toLowerCase().trim() === emailLower);
-      
-      if (!isEmployee) {
-        alert("등록된 직원 명단에 이메일이 없습니다. 관리자에게 문의하세요.");
-        await signOut(auth);
-        setError("등록된 직원 명단에 이메일이 없습니다.");
-        setLoading(false);
-        return;
-      }
+      // Automatically create or load Firestore profile for SAML user
+      await api.ensureProfileExists(user.uid, user.email, user.displayName);
+
     } catch (e: any) {
       console.error("Naver Works login error:", e);
       if (e.code === 'auth/unauthorized-domain') {
         const domain = window.location.hostname;
-        const msg = `[Firebase 도메인 승인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.`;
+        const msg = `[Firebase 도메인 승인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.\n\n* 원활한 테스트를 위해 '네이버 웍스 간편 시뮬레이터(SSO 선택)' 창을 엽니다.`;
         alert(msg);
-        setError("Firebase 승인되지 않은 도메인 오류입니다. (안내 팝업을 확인해 주세요.)");
+        setShowNaverWorks(true);
+        setError(null);
       } else if (e.code === 'auth/popup-closed-by-user') {
         setError("로그인 창이 닫혔습니다.");
       } else {
-        setError(`네이버웍스 로그인 실패: ${e.message}`);
+        const domain = window.location.hostname;
+        const msg = `[네이버 웍스 SAML/SSO 안내]\nSAML SSO 로그인 중 오류가 발생했습니다 (${e.code || e.message}).\n\n* 원활한 테스트를 위해 '네이버 웍스 간편 시뮬레이터(SSO 선택)' 창을 엽니다.`;
+        alert(msg);
+        setShowNaverWorks(true);
+        setError(null);
       }
     } finally {
       setLoading(false);
