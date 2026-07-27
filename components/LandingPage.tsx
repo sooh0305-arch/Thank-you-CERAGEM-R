@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Loader, Heart, ThumbsUp, MessageSquare, Sparkles } from 'lucide-react';
 import { api, initialEmployees } from '../lib/api';
-import { signInWithPopup, OAuthProvider, SAMLAuthProvider, signOut } from 'firebase/auth';
+import { signInWithRedirect, getRedirectResult, SAMLAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface LandingPageProps {
@@ -110,6 +110,38 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  // Handle SAML Redirect Login Result
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const user = result.user;
+          if (!user.email || !user.email.toLowerCase().endsWith('@ceragem.com')) {
+            alert("세라젬 임직원 계정(@ceragem.com)만 로그인 가능합니다.");
+            await signOut(auth);
+            setError("세라젬 임직원 계정이 아닙니다.");
+            return;
+          }
+          await api.ensureProfileExists(user.uid, user.email, user.displayName);
+        }
+      } catch (e: any) {
+        console.error("SAML Redirect Login Error Code:", e?.code);
+        console.error("SAML Redirect Login Error Message:", e?.message);
+        console.error("SAML Redirect Login Full Error:", e);
+        if (e?.code === 'auth/unauthorized-domain') {
+          const domain = window.location.hostname;
+          const msg = `[Firebase 도메인 승인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.`;
+          alert(msg);
+        } else {
+          setError(`네이버웍스 SAML 로그인 실패: ${e?.message || e}`);
+        }
+      }
+    };
+
+    checkRedirectResult();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -133,59 +165,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      let result;
-      // 1. Try SAML Provider ("saml.naverworks")
-      try {
-        const samlProvider = new SAMLAuthProvider("saml.naverworks");
-        result = await signInWithPopup(auth, samlProvider);
-      } catch (saml1Err: any) {
-        if (saml1Err.code === 'auth/invalid-provider-id' || saml1Err.code === 'auth/operation-not-allowed') {
-          try {
-            // 2. Try fallback SAML Provider ("saml.naverworks-saml")
-            const samlProvider2 = new SAMLAuthProvider("saml.naverworks-saml");
-            result = await signInWithPopup(auth, samlProvider2);
-          } catch (saml2Err: any) {
-            // 3. Fallback to OAuth OIDC ("oidc.naverworks")
-            const oidcProvider = new OAuthProvider("oidc.naverworks");
-            oidcProvider.addScope("openid");
-            result = await signInWithPopup(auth, oidcProvider);
-          }
-        } else {
-          throw saml1Err;
-        }
-      }
-
-      const user = result.user;
-      
-      if (!user.email || !user.email.toLowerCase().endsWith('@ceragem.com')) {
-        alert("세라젬 임직원 계정(@ceragem.com)만 로그인 가능합니다.");
-        await signOut(auth);
-        setError("세라젬 임직원 계정이 아닙니다.");
-        setLoading(false);
-        return;
-      }
-
-      // Automatically create or load Firestore profile for SAML user
-      await api.ensureProfileExists(user.uid, user.email, user.displayName);
-
+      const provider = new SAMLAuthProvider('saml.naverworks');
+      await signInWithRedirect(auth, provider);
     } catch (e: any) {
-      console.error("Naver Works login error:", e);
-      if (e.code === 'auth/unauthorized-domain') {
-        const domain = window.location.hostname;
-        const msg = `[Firebase 도메인 승인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.\n\n* 원활한 테스트를 위해 '네이버 웍스 간편 시뮬레이터(SSO 선택)' 창을 엽니다.`;
-        alert(msg);
-        setShowNaverWorks(true);
-        setError(null);
-      } else if (e.code === 'auth/popup-closed-by-user') {
-        setError("로그인 창이 닫혔습니다.");
-      } else {
-        const domain = window.location.hostname;
-        const msg = `[네이버 웍스 SAML/SSO 안내]\nSAML SSO 로그인 중 오류가 발생했습니다 (${e.code || e.message}).\n\n* 원활한 테스트를 위해 '네이버 웍스 간편 시뮬레이터(SSO 선택)' 창을 엽니다.`;
-        alert(msg);
-        setShowNaverWorks(true);
-        setError(null);
-      }
-    } finally {
+      console.error("SAML Login Error Code:", e?.code);
+      console.error("SAML Login Error Message:", e?.message);
+      console.error("SAML Login Full Error:", e);
+      setError(`네이버웍스 SAML 로그인 시작 실패: ${e?.message || e}`);
       setLoading(false);
     }
   };
