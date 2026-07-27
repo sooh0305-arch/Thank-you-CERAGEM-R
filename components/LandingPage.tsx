@@ -173,48 +173,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     alert(result.message);
   };
 
-  // Handle Naver Works SAML Login via Popup window
-  const handleNaverWorksLogin = async () => {
-    setLoading(true);
+  // Handle Naver Works SAML Login via backend Express /auth/login route
+  const handleNaverWorksLogin = () => {
     setError(null);
-    try {
-      const provider = new SAMLAuthProvider('saml.naverworks');
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+    const width = 520;
+    const height = 680;
+    const left = window.screenX + (window.innerWidth - width) / 2;
+    const top = window.screenY + (window.innerHeight - height) / 2;
+    
+    const popup = window.open(
+      '/auth/login',
+      'NaverWorksSSO',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
 
-      if (!user.email || !user.email.toLowerCase().endsWith('@ceragem.com')) {
-        alert("세라젬 임직원 계정(@ceragem.com)만 로그인 가능합니다.");
-        await signOut(auth);
-        setError("세라젬 임직원 계정(@ceragem.com)이 아닙니다.");
-        setLoading(false);
-        return;
-      }
-
-      await api.ensureProfileExists(user.uid, user.email, user.displayName);
-    } catch (e: any) {
-      console.error("SAML Login Error Code:", e?.code);
-      console.error("SAML Login Error Message:", e?.message);
-      console.error("SAML Login Full Error Object:", e);
-
-      const errorCode = e?.code || "UNKNOWN_ERROR";
-      const errorMsg = e?.message || String(e);
-
-      if (errorCode === 'auth/unauthorized-domain') {
-        const domain = window.location.hostname;
-        const msg = `[Firebase 승인된 도메인 오류]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인(Authorized Domains)에 등록되어 있지 않습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains\n2. '${domain}' 도메인 추가`;
-        alert(msg);
-        setError(`[에러 코드: ${errorCode}]\n${msg}`);
-      } else if (errorCode === 'auth/popup-closed-by-user') {
-        setError(`[로그인 취소]\n사용자가 네이버웍스 로그인 팝업 창을 닫았습니다.`);
-      } else if (errorCode === 'auth/popup-blocked') {
-        setError(`[팝업 차단됨]\n브라우저 팝업이 차단되었습니다. 주소창 우측에서 팝업 허용을 설정해 주세요.`);
-      } else if (errorCode === 'auth/invalid-provider-id' || errorCode === 'auth/operation-not-allowed') {
-        setError(`[Firebase SAML 설정 오류]\n에러 코드: ${errorCode}\nFirebase Console > Authentication > Sign-in method 에서 SAML 제공업체 ID가 'saml.naverworks' 로 등록되어 있는지 확인하세요.`);
-      } else {
-        setError(`[SAML SSO 로그인 에러]\n• 에러 코드: ${errorCode}\n• 원인 메시지: ${errorMsg}\n\n※ 확인 포인트:\n1. 네이버웍스 Admin SSO 설정의 ACS URL, Entity ID\n2. Firebase SAML 등록 시 입력한 SSO URL 및 X.509 Certificate`);
-      }
-    } finally {
-      setLoading(false);
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      // Fallback to direct page redirect if popup is blocked by browser
+      window.location.href = '/auth/login';
     }
   };
 

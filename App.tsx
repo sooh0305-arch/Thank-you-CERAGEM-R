@@ -11,7 +11,7 @@ import PasswordChangeModal from './components/PasswordChangeModal';
 import { api } from './lib/api';
 import { Profile, Notification } from './types';
 import { auth, db } from './lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 
 const App: React.FC = () => {
@@ -22,8 +22,46 @@ const App: React.FC = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Firebase Auth 상태 추적
+  // Firebase Auth 상태 추적 및 SAML Custom Token 처리
   useEffect(() => {
+    const processCustomToken = async () => {
+      const pendingToken = localStorage.getItem('firebase_custom_token');
+      if (pendingToken) {
+        localStorage.removeItem('firebase_custom_token');
+        try {
+          setIsLoading(true);
+          const cred = await signInWithCustomToken(auth, pendingToken);
+          if (cred.user && cred.user.email) {
+            await api.ensureProfileExists(cred.user.uid, cred.user.email, cred.user.displayName);
+          }
+        } catch (err) {
+          console.error("Error signing in with SAML custom token:", err);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    processCustomToken();
+
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'SAML_LOGIN_SUCCESS' && event.data?.token) {
+        try {
+          setIsLoading(true);
+          const cred = await signInWithCustomToken(auth, event.data.token);
+          if (cred.user && cred.user.email) {
+            await api.ensureProfileExists(cred.user.uid, cred.user.email, cred.user.displayName);
+          }
+        } catch (err) {
+          console.error("Error handling SAML_LOGIN_SUCCESS message:", err);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // 인증된 상태라면 Firestore에서 프로필 로드
@@ -38,7 +76,10 @@ const App: React.FC = () => {
       setIsLoading(false);
     });
 
-    return () => unsubAuth();
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      unsubAuth();
+    };
   }, []);
 
   // Real-time listener for current user data
