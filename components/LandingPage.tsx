@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Loader, Heart, ThumbsUp, MessageSquare, Sparkles } from 'lucide-react';
 import { api, initialEmployees } from '../lib/api';
-import { signInWithRedirect, getRedirectResult, SAMLAuthProvider, signOut } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, SAMLAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface LandingPageProps {
@@ -163,25 +163,47 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     alert(result.message);
   };
 
+  // Handle Naver Works SAML Login via Popup window
   const handleNaverWorksLogin = async () => {
     setLoading(true);
     setError(null);
     try {
       const provider = new SAMLAuthProvider('saml.naverworks');
-      await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      if (!user.email || !user.email.toLowerCase().endsWith('@ceragem.com')) {
+        alert("세라젬 임직원 계정(@ceragem.com)만 로그인 가능합니다.");
+        await signOut(auth);
+        setError("세라젬 임직원 계정(@ceragem.com)이 아닙니다.");
+        setLoading(false);
+        return;
+      }
+
+      await api.ensureProfileExists(user.uid, user.email, user.displayName);
     } catch (e: any) {
       console.error("SAML Login Error Code:", e?.code);
       console.error("SAML Login Error Message:", e?.message);
-      console.error("SAML Login Full Error:", e);
-      if (e?.code === 'auth/unauthorized-domain') {
+      console.error("SAML Login Full Error Object:", e);
+
+      const errorCode = e?.code || "UNKNOWN_ERROR";
+      const errorMsg = e?.message || String(e);
+
+      if (errorCode === 'auth/unauthorized-domain') {
         const domain = window.location.hostname;
-        const msg = `[Firebase 승인된 도메인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인(Authorized Domains) 리스트에 등록되어 있지 않습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴 이동\n2. '${domain}' 추가\n\n* 테스트 진행을 위해 네이버 웍스 간편 로그인 시뮬레이터를 실행합니다.`;
+        const msg = `[Firebase 승인된 도메인 오류]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인(Authorized Domains)에 등록되어 있지 않습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains\n2. '${domain}' 도메인 추가`;
         alert(msg);
-        setShowNaverWorks(true);
-        setError(null);
+        setError(`[에러 코드: ${errorCode}]\n${msg}`);
+      } else if (errorCode === 'auth/popup-closed-by-user') {
+        setError(`[로그인 취소]\n사용자가 네이버웍스 로그인 팝업 창을 닫았습니다.`);
+      } else if (errorCode === 'auth/popup-blocked') {
+        setError(`[팝업 차단됨]\n브라우저 팝업이 차단되었습니다. 주소창 우측에서 팝업 허용을 설정해 주세요.`);
+      } else if (errorCode === 'auth/invalid-provider-id' || errorCode === 'auth/operation-not-allowed') {
+        setError(`[Firebase SAML 설정 오류]\n에러 코드: ${errorCode}\nFirebase Console > Authentication > Sign-in method 에서 SAML 제공업체 ID가 'saml.naverworks' 로 등록되어 있는지 확인하세요.`);
       } else {
-        setError(`네이버웍스 SAML 로그인 시작 실패: ${e?.message || e}`);
+        setError(`[SAML SSO 로그인 에러]\n• 에러 코드: ${errorCode}\n• 원인 메시지: ${errorMsg}\n\n※ 확인 포인트:\n1. 네이버웍스 Admin SSO 설정의 ACS URL, Entity ID\n2. Firebase SAML 등록 시 입력한 SSO URL 및 X.509 Certificate`);
       }
+    } finally {
       setLoading(false);
     }
   };
@@ -327,7 +349,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <div className="p-3 bg-rose-50 text-[#E63946] text-xs rounded-xl text-center border-2 border-slate-900 font-bold shadow-[2px_2px_0px_0px_#0f172a]">
+                  <div className="p-3.5 bg-rose-50 text-[#E63946] text-xs rounded-xl text-left border-2 border-slate-900 font-bold shadow-[2px_2px_0px_0px_#0f172a] whitespace-pre-line leading-relaxed">
                     ⚠️ {error}
                   </div>
                 )}
