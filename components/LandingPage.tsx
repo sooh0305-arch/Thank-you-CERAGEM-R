@@ -227,10 +227,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      if (!user.email || !user.email.toLowerCase().endsWith('@ceragem.com')) {
-        alert("세라젬 임직원 계정(@ceragem.com)만 로그인 가능합니다.");
+      if (!user.email) {
+        alert("이메일 정보가 없는 구글 계정입니다.");
         await signOut(auth);
-        setError("세라젬 임직원 계정(@ceragem.com)이 아닙니다.");
+        setError("이메일 정보가 없는 계정입니다.");
         setLoading(false);
         return;
       }
