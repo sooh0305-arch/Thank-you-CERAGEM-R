@@ -131,8 +131,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
         console.error("SAML Redirect Login Full Error:", e);
         if (e?.code === 'auth/unauthorized-domain') {
           const domain = window.location.hostname;
-          const msg = `[Firebase 도메인 승인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.`;
+          const msg = `[Firebase 승인된 도메인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.\n\n* 지속적인 테스트를 위해 '네이버 웍스 간편 시뮬레이터' 창을 엽니다.`;
           alert(msg);
+          setShowNaverWorks(true);
+          setError(null);
         } else {
           setError(`네이버웍스 SAML 로그인 실패: ${e?.message || e}`);
         }
@@ -171,7 +173,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       console.error("SAML Login Error Code:", e?.code);
       console.error("SAML Login Error Message:", e?.message);
       console.error("SAML Login Full Error:", e);
-      setError(`네이버웍스 SAML 로그인 시작 실패: ${e?.message || e}`);
+      if (e?.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        const msg = `[Firebase 승인된 도메인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인(Authorized Domains) 리스트에 등록되어 있지 않습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴 이동\n2. '${domain}' 추가\n\n* 테스트 진행을 위해 네이버 웍스 간편 로그인 시뮬레이터를 실행합니다.`;
+        alert(msg);
+        setShowNaverWorks(true);
+        setError(null);
+      } else {
+        setError(`네이버웍스 SAML 로그인 시작 실패: ${e?.message || e}`);
+      }
       setLoading(false);
     }
   };
