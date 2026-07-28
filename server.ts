@@ -98,25 +98,18 @@ const firestoreCacheProvider = {
 const esc = (s: string) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] || c));
 
-// Helper for formatting PEM certificates robustly
-const formatPemCert = (rawCert: string): string => {
-  if (!rawCert) return "";
-  let cert = rawCert.trim();
-
-  // Convert literal '\n' string to actual linebreaks
-  cert = cert.replace(/\\n/g, "\n").replace(/\r/g, "");
-
-  // If missing PEM header, wrap base64 body in standard PEM format
-  if (!cert.includes("-----BEGIN CERTIFICATE-----")) {
-    const cleanBase64 = cert.replace(/[\s\n\r]/g, "");
-    if (cleanBase64) {
-      const chunks = cleanBase64.match(/.{1,64}/g) || [];
-      cert = `-----BEGIN CERTIFICATE-----\n${chunks.join("\n")}\n-----END CERTIFICATE-----`;
-    }
-  }
-
-  return cert;
-};
+// Helper for normalizing PEM certificates
+function normalizePem(raw: string): string {
+  if (!raw) return "";
+  // Remove header/footer and extract base64 body (stripping whitespace and linebreaks)
+  const body = raw
+    .replace(/-----BEGIN CERTIFICATE-----/g, "")
+    .replace(/-----END CERTIFICATE-----/g, "")
+    .replace(/\s+/g, "");
+  // Reassemble as standard PEM with 64-char line breaks
+  const lines = body.match(/.{1,64}/g) || [];
+  return `-----BEGIN CERTIFICATE-----\n${lines.join("\n")}\n-----END CERTIFICATE-----`;
+}
 
 async function startServer() {
   const app = express();
@@ -151,14 +144,7 @@ async function startServer() {
     
     const idpSsoUrl = process.env.SAML_IDP_SSO_URL || "https://auth.worksmobile.com/saml2/idp/ceragem.com";
     const idpIssuer = process.env.SAML_IDP_ISSUER || "https://auth.worksmobile.com/saml2/ceragem.com";
-    const rawCert = process.env.SAML_IDP_CERT || "";
-    console.log("CERT_CHECK length:", rawCert.length);
-    console.log("CERT_CHECK starts:", JSON.stringify(rawCert.substring(0, 40)));
-    console.log("CERT_CHECK ends:", JSON.stringify(rawCert.substring(rawCert.length - 40)));
-    console.log("CERT_CHECK has real newline:", rawCert.includes("\n"));
-    console.log("CERT_CHECK has literal backslash-n:", rawCert.includes("\\n"));
-
-    const idpCert = formatPemCert(rawCert);
+    const idpCert = normalizePem(process.env.SAML_IDP_CERT || "");
     const spIssuer = process.env.SAML_SP_ISSUER || `${appBaseUrl}/`;
     const spAcsUrl = process.env.SAML_SP_ACS_URL || `${appBaseUrl}/auth/acs`;
 
