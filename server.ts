@@ -151,7 +151,14 @@ async function startServer() {
     
     const idpSsoUrl = process.env.SAML_IDP_SSO_URL || "https://auth.worksmobile.com/saml2/idp/ceragem.com";
     const idpIssuer = process.env.SAML_IDP_ISSUER || "https://auth.worksmobile.com/saml2/ceragem.com";
-    const idpCert = formatPemCert(process.env.SAML_IDP_CERT || "");
+    const rawCert = process.env.SAML_IDP_CERT || "";
+    console.log("CERT_CHECK length:", rawCert.length);
+    console.log("CERT_CHECK starts:", JSON.stringify(rawCert.substring(0, 40)));
+    console.log("CERT_CHECK ends:", JSON.stringify(rawCert.substring(rawCert.length - 40)));
+    console.log("CERT_CHECK has real newline:", rawCert.includes("\n"));
+    console.log("CERT_CHECK has literal backslash-n:", rawCert.includes("\\n"));
+
+    const idpCert = formatPemCert(rawCert);
     const spIssuer = process.env.SAML_SP_ISSUER || `${appBaseUrl}/`;
     const spAcsUrl = process.env.SAML_SP_ACS_URL || `${appBaseUrl}/auth/acs`;
 
