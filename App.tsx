@@ -45,17 +45,37 @@ const App: React.FC = () => {
     processCustomToken();
 
     const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === 'SAML_LOGIN_SUCCESS' && event.data?.token) {
-        try {
-          setIsLoading(true);
-          const cred = await signInWithCustomToken(auth, event.data.token);
-          if (cred.user && cred.user.email) {
-            await api.ensureProfileExists(cred.user.uid, cred.user.email, cred.user.displayName);
+      if (event.data?.type === 'SAML_AUTH_SUCCESS' || event.data?.type === 'SAML_LOGIN_SUCCESS') {
+        const token = event.data?.token || localStorage.getItem('firebase_custom_token');
+        if (token) {
+          localStorage.removeItem('firebase_custom_token');
+          try {
+            setIsLoading(true);
+            const cred = await signInWithCustomToken(auth, token);
+            if (cred.user && cred.user.email) {
+              await api.ensureProfileExists(cred.user.uid, cred.user.email, cred.user.displayName);
+              const profile = await api.getUser(cred.user.uid);
+              if (profile) {
+                setCurrentUser(profile);
+              }
+            }
+          } catch (err) {
+            console.error("Error handling SAML auth message:", err);
+          } finally {
+            setIsLoading(false);
           }
-        } catch (err) {
-          console.error("Error handling SAML_LOGIN_SUCCESS message:", err);
-        } finally {
-          setIsLoading(false);
+        } else if (auth.currentUser) {
+          try {
+            setIsLoading(true);
+            const profile = await api.getUser(auth.currentUser.uid);
+            if (profile) {
+              setCurrentUser(profile);
+            }
+          } catch (err) {
+            console.error("Error fetching profile on SAML auth message:", err);
+          } finally {
+            setIsLoading(false);
+          }
         }
       }
     };

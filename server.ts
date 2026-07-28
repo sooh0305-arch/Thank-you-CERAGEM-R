@@ -322,19 +322,27 @@ async function startServer() {
 
       // Create/Get Firebase user & issue custom token
       const authClient = getAdminAuth();
-      const uid = "nw_" + crypto.createHash("sha256").update(email).digest("hex").slice(0, 28);
+      let targetUid: string;
+
       try {
-        await authClient.getUser(uid);
-      } catch {
-        await authClient.createUser({
-          uid,
-          email,
-          emailVerified: true,
-          displayName: profile.displayName || email.split("@")[0],
-        });
+        const existingUser = await authClient.getUserByEmail(email);
+        targetUid = existingUser.uid;
+      } catch (userErr: any) {
+        if (userErr.code === "auth/user-not-found" || userErr?.errorInfo?.code === "auth/user-not-found") {
+          const generatedUid = "nw_" + crypto.createHash("sha256").update(email).digest("hex").slice(0, 28);
+          const newUser = await authClient.createUser({
+            uid: generatedUid,
+            email,
+            emailVerified: true,
+            displayName: profile.displayName || email.split("@")[0],
+          });
+          targetUid = newUser.uid;
+        } else {
+          throw userErr;
+        }
       }
 
-      const customToken = await authClient.createCustomToken(uid, {
+      const customToken = await authClient.createCustomToken(targetUid, {
         loginMethod: "naverworks-saml",
         email: email,
       });
@@ -392,23 +400,74 @@ async function startServer() {
 <head>
   <meta charset="utf-8">
   <title>로그인 완료</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .card {
+      background: #ffffff;
+      padding: 32px 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      text-align: center;
+      max-width: 360px;
+      width: 85%;
+      border: 1px solid #e2e8f0;
+    }
+    .icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+  </style>
 </head>
-<body style="font-family:sans-serif; text-align:center; padding-top:60px;">
-  <h2>🎉 네이버웍스 로그인 성공!</h2>
-  <p>앱으로 이동 중입니다...</p>
+<body>
+  <div class="card">
+    <div class="icon">🎉</div>
+    <h2>로그인 완료!</h2>
+    <p>이 창은 닫으셔도 됩니다.</p>
+  </div>
   <script>
     const token = "${esc(token)}";
     const nextPath = "${esc(nextPath)}";
+
     if (token) {
       try {
         localStorage.setItem("firebase_custom_token", token);
-      } catch(e) { console.error(e); }
+      } catch (e) { console.error(e); }
     }
+
     if (window.opener && !window.opener.closed) {
       try {
-        window.opener.postMessage({ type: "SAML_LOGIN_SUCCESS", token: token }, "*");
-      } catch(e) {}
-      window.close();
+        window.opener.postMessage({ type: 'SAML_AUTH_SUCCESS', token: token }, window.location.origin);
+      } catch (e) {
+        try {
+          window.opener.postMessage({ type: 'SAML_AUTH_SUCCESS', token: token }, '*');
+        } catch (err) {}
+      }
+      setTimeout(function() {
+        try {
+          window.close();
+        } catch (e) {}
+      }, 300);
     } else {
       window.location.href = nextPath;
     }
