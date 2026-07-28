@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Loader, Heart, ThumbsUp, MessageSquare, Sparkles } from 'lucide-react';
 import { api, initialEmployees } from '../lib/api';
-import { signInWithPopup, signInWithRedirect, getRedirectResult, SAMLAuthProvider, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, SAMLAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface LandingPageProps {
@@ -75,16 +75,6 @@ const NaverWorksIcon: React.FC = () => (
       {/* 3. Left Pillar (at the top layer of the arch) */}
       <rect x="24" y="12" width="20" height="76" rx="10" fill="url(#nw-green-grad)" />
     </g>
-  </svg>
-);
-
-// Google Icon
-const GoogleIcon: React.FC = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5 mr-2 shrink-0" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
   </svg>
 );
 
@@ -190,49 +180,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     if (!popup || popup.closed || typeof popup.closed === 'undefined') {
       // Fallback to direct page redirect if popup is blocked by browser
       window.location.href = '/auth/login';
-    }
-  };
-
-  // Handle Google Login via Popup window
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      if (!user.email) {
-        alert("이메일 정보가 없는 구글 계정입니다.");
-        await signOut(auth);
-        setError("이메일 정보가 없는 계정입니다.");
-        setLoading(false);
-        return;
-      }
-
-      await api.ensureProfileExists(user.uid, user.email, user.displayName);
-    } catch (e: any) {
-      console.error("Google Login Error Code:", e?.code);
-      console.error("Google Login Error Message:", e?.message);
-      console.error("Google Login Full Error Object:", e);
-
-      const errorCode = e?.code || "UNKNOWN_ERROR";
-      const errorMsg = e?.message || String(e);
-
-      if (errorCode === 'auth/unauthorized-domain') {
-        const domain = window.location.hostname;
-        const msg = `[Firebase 승인된 도메인 오류]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인(Authorized Domains)에 등록되어 있지 않습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains\n2. '${domain}' 도메인 추가`;
-        alert(msg);
-        setError(`[에러 코드: ${errorCode}]\n${msg}`);
-      } else if (errorCode === 'auth/popup-closed-by-user') {
-        setError(`[로그인 취소]\n사용자가 구글 로그인 팝업 창을 닫았습니다.`);
-      } else if (errorCode === 'auth/popup-blocked') {
-        setError(`[팝업 차단됨]\n브라우저 팝업이 차단되었습니다. 주소창 우측에서 팝업 허용을 설정해 주세요.`);
-      } else {
-        setError(`[Google 로그인 에러]\n• 에러 코드: ${errorCode}\n• 원인 메시지: ${errorMsg}`);
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -428,16 +375,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">또는</span>
                 <div className="flex-grow border-t border-slate-200"></div>
               </div>
-
-              {/* Google Login Button */}
-              <button 
-                type="button"
-                onClick={handleGoogleLogin}
-                className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-900 font-black rounded-xl transition-all flex justify-center items-center shadow-brutal-black text-sm mb-3"
-              >
-                <GoogleIcon />
-                <span>Google 계정으로 시작하기</span>
-              </button>
 
               {/* Naver Works SSO Button */}
               <button 
