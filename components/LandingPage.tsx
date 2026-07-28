@@ -5,7 +5,7 @@ import { signInWithPopup, signInWithRedirect, getRedirectResult, SAMLAuthProvide
 import { auth } from '../lib/firebase';
 
 interface LandingPageProps {
-  onLogin: (email: string, pass: string) => Promise<string | null>;
+  onLogin?: (email: string, pass: string) => Promise<string | null>;
 }
 
 // Interactive floating stickers that pop when hovered and reappear shortly
@@ -89,15 +89,9 @@ const ssoEmployees = [
   { name: "김소영", email: "sykim@ceragem.com", dept: "세라제머육성팀", password: "000000" }
 ];
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
+const LandingPage: React.FC<LandingPageProps> = () => {
   const [showLogin, setShowLogin] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showNaverWorks, setShowNaverWorks] = useState(false);
-  const [selectedSsoIndex, setSelectedSsoIndex] = useState(0);
-  const [ssoLoading, setSsoLoading] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -110,7 +104,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Handle SAML Redirect Login Result
+  // Handle SAML Redirect Login Result if redirected back via Firebase
   useEffect(() => {
     const checkRedirectResult = async () => {
       try {
@@ -126,74 +120,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
           await api.ensureProfileExists(user.uid, user.email, user.displayName);
         }
       } catch (e: any) {
-        console.error("SAML Redirect Login Error Code:", e?.code);
-        console.error("SAML Redirect Login Error Message:", e?.message);
-        console.error("SAML Redirect Login Full Error:", e);
-        if (e?.code === 'auth/unauthorized-domain') {
-          const domain = window.location.hostname;
-          const msg = `[Firebase 승인된 도메인 필요]\n현재 도메인(${domain})이 Firebase Auth 승인된 도메인 리스트에 없습니다.\n\n해결 방법:\n1. Firebase 콘솔 > Authentication > Settings > Authorized Domains 메뉴로 이동합니다.\n2. '${domain}' 도메인을 추가해 주세요.\n\n* 지속적인 테스트를 위해 '네이버 웍스 간편 시뮬레이터' 창을 엽니다.`;
-          alert(msg);
-          setShowNaverWorks(true);
-          setError(null);
-        } else {
-          setError(`네이버웍스 SAML 로그인 실패: ${e?.message || e}`);
-        }
+        console.error("SAML Redirect Login Error:", e);
+        setError(`네이버웍스 SAML 로그인 실패: ${e?.message || e}`);
       }
     };
 
     checkRedirectResult();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    const err = await onLogin(email, password);
-    if (err) setError(err);
-    setLoading(false);
-  };
-
-  const handleForgotPassword = async () => {
-    const emailInput = window.prompt("비밀번호 재설정 링크를 받을 이메일 주소를 입력해주세요.");
-    if (!emailInput) return;
-    
-    setLoading(true);
-    const result = await api.sendPasswordReset(emailInput);
-    setLoading(false);
-    alert(result.message);
-  };
-
-  // Handle Naver Works SAML Login via backend Express /auth/login route
+  // Direct page redirect to /auth/login for Naver Works SSO (No popup)
   const handleNaverWorksLogin = () => {
     setError(null);
-    const width = 520;
-    const height = 680;
-    const left = window.screenX + (window.innerWidth - width) / 2;
-    const top = window.screenY + (window.innerHeight - height) / 2;
-    
-    const popup = window.open(
-      '/auth/login',
-      'NaverWorksSSO',
-      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-    );
-
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-      // Fallback to direct page redirect if popup is blocked by browser
-      window.location.href = '/auth/login';
-    }
-  };
-
-  const handleSsoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSsoLoading(true);
-    setError(null);
-    const emp = ssoEmployees[selectedSsoIndex];
-    const err = await onLogin(emp.email, emp.password);
-    if (err) {
-      setError(err);
-      setShowNaverWorks(false);
-    }
-    setSsoLoading(false);
+    window.location.href = '/auth/login';
   };
 
   return (
@@ -216,7 +154,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 
       {/* Floating Interactive Stickers Layer */}
       <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
-        
         {/* sticker 1: Heart (Coral Red) */}
         <InteractiveSticker className="top-[18%] left-[8%] animate-float-slow" delay={0}>
           <div className="bg-[#E63946] text-white p-4 rounded-2xl border-2 border-slate-900 shadow-brutal-black flex items-center gap-2">
@@ -267,7 +204,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       <div className="relative z-20 w-full h-full flex flex-col items-center justify-center pointer-events-none">
         {!showLogin ? (
           <div className="relative w-full max-w-7xl mx-auto h-full flex flex-col items-center justify-center px-4">
-            
             {/* Top Display Banner */}
             <div className="absolute top-[12%] md:top-[15%] pointer-events-auto">
               <div className="bg-slate-900 text-[#FAF9F6] border-2 border-slate-900 px-6 py-2.5 rounded-full transform -rotate-2 hover:rotate-0 transition-transform duration-300 font-black text-xs md:text-sm tracking-wider">
@@ -275,7 +211,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            {/* Giant Bold Typography Section - Clean typography with clean, exterior-only vector outline */}
+            {/* Giant Bold Typography Section */}
             <div className="flex flex-col items-center justify-center select-none text-center transform -translate-y-4">
               <h1 className="text-[13vw] md:text-[7.5rem] lg:text-[9rem] font-black leading-none tracking-tight flex flex-col items-center gap-0">
                 <span 
@@ -302,182 +238,54 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             {/* Bottom Call to Action */}
             <div className="absolute bottom-[13%] md:bottom-[15%] pointer-events-auto">
               <button 
-                onClick={() => setShowLogin(true)} 
-                className="group relative flex items-center justify-center px-16 py-6 md:px-24 md:py-8 bg-slate-900 text-[#FAF9F6] rounded-2xl border-2 border-slate-900 shadow-brutal-brand hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[10px_10px_0px_0px_#E63946] active:translate-x-[0px] active:translate-y-[0px] active:shadow-brutal-brand transition-all duration-300"
+                onClick={handleNaverWorksLogin} 
+                className="group relative flex items-center justify-center px-12 py-6 md:px-20 md:py-7 bg-slate-900 text-[#FAF9F6] rounded-2xl border-2 border-slate-900 shadow-brutal-brand hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[10px_10px_0px_0px_#E63946] active:translate-x-[0px] active:translate-y-[0px] active:shadow-brutal-brand transition-all duration-300 gap-3"
               >
-                <span className="text-base md:text-xl font-black tracking-[0.25em] mr-3 pl-[0.25em]">시작하기</span>
-                <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-yellow-300 group-hover:translate-x-1.5 transition-transform duration-300" />
+                <NaverWorksIcon />
+                <span className="text-base md:text-xl font-black tracking-wide">네이버 웍스로 시작하기</span>
+                <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-yellow-300 group-hover:translate-x-1.5 transition-transform duration-300 ml-1" />
               </button>
             </div>
           </div>
         ) : (
-          <div className="w-[90%] md:w-full max-w-sm py-10 px-8 md:py-12 md:px-9 bg-white rounded-2xl border-2 border-slate-900 shadow-brutal-black transform transition-all animate-scale-in relative z-50 pointer-events-auto">
+          <div className="w-[90%] md:w-full max-w-sm py-10 px-8 md:py-12 md:px-9 bg-white rounded-2xl border-2 border-slate-900 shadow-brutal-black transform transition-all animate-scale-in relative z-50 pointer-events-auto text-center">
              
              {/* Login Header */}
-             <div className="text-center mb-8 flex flex-col items-center">
-               <div className="w-14 h-14 rounded-xl bg-[#E63946] flex items-center justify-center text-white border-2 border-slate-900 shadow-brutal-black mb-3">
-                 <Sparkles className="w-6 h-6" />
+             <div className="text-center mb-6 flex flex-col items-center">
+               <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-white border-2 border-slate-900 shadow-brutal-black mb-4">
+                 <NaverWorksIcon />
                </div>
-               <h2 className="text-xl font-black text-slate-800 tracking-tight">로그인</h2>
-               <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mt-1">Ready to Thank you CERAGEM?</p>
+               <h2 className="text-xl font-black text-slate-800 tracking-tight">네이버 웍스 SSO 로그인</h2>
+               <p className="text-slate-400 font-bold text-xs mt-1.5">세라젬 사내 계정(@ceragem.com)으로 계속하기</p>
              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div className="p-3.5 bg-rose-50 text-[#E63946] text-xs rounded-xl text-left border-2 border-slate-900 font-bold shadow-[2px_2px_0px_0px_#0f172a] whitespace-pre-line leading-relaxed">
-                    ⚠️ {error}
-                  </div>
-                )}
-                
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1.5 ml-1">사내 이메일</label>
-                  <input 
-                    type="email" 
-                    placeholder="yourname@ceragem.com" 
-                    className="w-full p-3.5 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-xl focus:outline-none transition-all text-slate-800 font-bold text-sm shadow-[2px_2px_0px_0px_rgba(15,23,42,0.15)] focus:shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]" 
-                    value={email} 
-                    onChange={e => setEmail(e.target.value)} 
-                    required 
-                  />
+              {error && (
+                <div className="p-3.5 mb-5 bg-rose-50 text-[#E63946] text-xs rounded-xl text-left border-2 border-slate-900 font-bold shadow-[2px_2px_0px_0px_#0f172a] whitespace-pre-line leading-relaxed">
+                  ⚠️ {error}
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1.5 ml-1">비밀번호</label>
-                  <input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    className="w-full p-3.5 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-xl focus:outline-none transition-all text-slate-800 font-bold text-sm shadow-[2px_2px_0px_0px_rgba(15,23,42,0.15)] focus:shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]" 
-                    value={password} 
-                    onChange={e => setPassword(e.target.value)} 
-                    required 
-                  />
-                </div>
-                
-                <button 
-                  type="submit" 
-                  disabled={loading} 
-                  className="w-full py-3.5 bg-[#E63946] hover:bg-[#d52b38] text-white border-2 border-slate-900 font-black rounded-xl transition-all flex justify-center items-center shadow-brutal-black text-sm mt-6"
-                >
-                  {loading ? <Loader className="animate-spin text-white w-4 h-4" /> : '로그인 🚀'}
-                </button>
-
-                <button 
-                  type="button" 
-                  onClick={handleForgotPassword} 
-                  className="block mx-auto text-[11px] text-[#E63946] hover:underline font-bold transition-colors"
-                >
-                  비밀번호를 잊으셨나요?
-                </button>
-              </form>
-              
-              <div className="flex items-center my-4">
-                <div className="flex-grow border-t border-slate-200"></div>
-                <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">또는</span>
-                <div className="flex-grow border-t border-slate-200"></div>
-              </div>
-
-              {/* Naver Works SSO Button */}
+              {/* Large Central Naver Works SSO Button */}
               <button 
                 type="button"
                 onClick={handleNaverWorksLogin}
-                className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-900 font-black rounded-xl transition-all flex justify-center items-center shadow-brutal-black text-sm mb-4"
+                className="w-full py-4 px-6 bg-[#00C73C] hover:bg-[#00b335] text-white border-2 border-slate-900 font-black rounded-2xl transition-all flex justify-center items-center gap-3 shadow-brutal-black text-base my-2 hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-0 active:translate-y-0"
               >
                 <NaverWorksIcon />
                 <span>네이버 웍스로 시작하기</span>
               </button>
 
-              <div className="border-t-2 border-slate-900 my-5" />
+              <div className="border-t-2 border-slate-900 my-6" />
 
               <button 
                 onClick={() => setShowLogin(false)} 
-                className="w-full text-[10px] text-slate-400 hover:text-[#E63946] transition-colors font-black uppercase tracking-widest text-center"
+                className="w-full text-xs text-slate-400 hover:text-[#E63946] transition-colors font-black uppercase tracking-widest text-center"
               >
                 뒤로가기
               </button>
             </div>
          )}
       </div>
-
-      {/* Naver Works SSO Simulation Modal */}
-      {showNaverWorks && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 pointer-events-auto">
-          <div className="bg-white w-full max-w-sm rounded-2xl border-2 border-slate-900 shadow-brutal-black overflow-hidden animate-scale-in">
-            {/* Header: Green Naver Works Style */}
-            <div className="bg-[#00C73C] p-5 text-white flex items-center justify-between border-b-2 border-slate-900">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
-                  <NaverWorksIcon />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm tracking-wide">NAVER WORKS</h3>
-                  <p className="text-[9px] text-white/90 font-bold">Single Sign-On</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowNaverWorks(false)}
-                className="w-8 h-8 rounded-lg hover:bg-black/10 flex items-center justify-center font-bold text-white transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Body */}
-            <form onSubmit={handleSsoSubmit} className="p-6 space-y-4">
-              <div className="text-center mb-2">
-                <div className="text-xs bg-slate-50 py-2.5 px-3.5 rounded-xl border border-slate-200/80 font-bold text-slate-600 leading-relaxed">
-                  🔒 <span className="text-[#00C73C]">세라젬 네이버 웍스</span> 계정으로<br />
-                  간편하고 안전하게 로그인하세요.
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1.5">임직원 계정 선택</label>
-                <select 
-                  className="w-full p-3.5 bg-slate-50 border-2 border-slate-900 rounded-xl focus:outline-none transition-all text-slate-800 font-extrabold text-xs md:text-sm"
-                  value={selectedSsoIndex}
-                  onChange={e => setSelectedSsoIndex(Number(e.target.value))}
-                >
-                  {ssoEmployees.map((emp, idx) => (
-                    <option key={emp.email} value={idx}>
-                      [{emp.dept}] {emp.name} ({emp.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 tracking-wider uppercase mb-1.5">인증 상태</label>
-                <input 
-                  type="text"
-                  value="세라젬 사내인증 완료 (자동연동)"
-                  disabled
-                  className="w-full p-3.5 bg-slate-100 border-2 border-slate-200 text-green-600 rounded-xl font-bold text-xs"
-                />
-              </div>
-
-              <button 
-                type="submit"
-                disabled={ssoLoading}
-                className="w-full py-4 bg-[#00C73C] hover:bg-[#00b335] text-white border-2 border-slate-900 font-black rounded-xl transition-all flex justify-center items-center shadow-brutal-black text-sm mt-6"
-              >
-                {ssoLoading ? (
-                  <Loader className="animate-spin text-white w-4 h-4" />
-                ) : (
-                  '네이버 웍스로 로그인 완료 🚀'
-                )}
-              </button>
-
-              <button 
-                type="button"
-                onClick={() => setShowNaverWorks(false)}
-                className="w-full text-[11px] text-slate-400 hover:text-slate-600 font-bold text-center mt-2 transition-colors"
-              >
-                취소하기
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

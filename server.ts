@@ -389,7 +389,7 @@ async function startServer() {
     }
   });
 
-  // POST /auth/complete - Client token receiver
+  // POST /auth/complete - Client token receiver and redirect handler
   app.post("/auth/complete", (req, res) => {
     const token = req.body?.token || "";
     const nextPath = req.body?.next || "/";
@@ -409,41 +409,42 @@ async function startServer() {
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      background-color: #f8fafc;
+      background-color: #FAF9F6;
       color: #0f172a;
     }
     .card {
       background: #ffffff;
-      padding: 32px 24px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      padding: 36px 28px;
+      border-radius: 20px;
+      box-shadow: 4px 4px 0px 0px #0f172a;
       text-align: center;
-      max-width: 360px;
+      max-width: 380px;
       width: 85%;
-      border: 1px solid #e2e8f0;
+      border: 2px solid #0f172a;
     }
     .icon {
-      font-size: 40px;
+      font-size: 44px;
       margin-bottom: 12px;
     }
     h2 {
       margin: 0 0 8px 0;
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 20px;
+      font-weight: 800;
     }
     p {
       margin: 0;
       font-size: 14px;
       color: #64748b;
       line-height: 1.5;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="icon">🎉</div>
-    <h2>로그인 완료!</h2>
-    <p>이 창은 닫으셔도 됩니다.</p>
+    <h2>인증 성공!</h2>
+    <p>네이버웍스 인증이 완료되었습니다.<br/>땡큐세라젬으로 이동합니다...</p>
   </div>
   <script>
     const token = "${esc(token)}";
@@ -452,25 +453,11 @@ async function startServer() {
     if (token) {
       try {
         localStorage.setItem("firebase_custom_token", token);
-      } catch (e) { console.error(e); }
-    }
-
-    if (window.opener && !window.opener.closed) {
-      try {
-        window.opener.postMessage({ type: 'SAML_AUTH_SUCCESS', token: token }, window.location.origin);
       } catch (e) {
-        try {
-          window.opener.postMessage({ type: 'SAML_AUTH_SUCCESS', token: token }, '*');
-        } catch (err) {}
+        console.error(e);
       }
-      setTimeout(function() {
-        try {
-          window.close();
-        } catch (e) {}
-      }, 300);
-    } else {
-      window.location.href = nextPath;
     }
+    window.location.href = nextPath || "/";
   </script>
 </body>
 </html>`);
