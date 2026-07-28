@@ -142,6 +142,7 @@ async function startServer() {
       issuer: spIssuer,
       callbackUrl: spAcsUrl,
       authnRequestBinding: "HTTP-POST",
+      skipRequestCompression: true,
       identifierFormat: "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
       validateInResponseTo: "never" as ValidateInResponseTo, // allow flexible login responses if needed or set always if cached
       cacheProvider: firestoreCacheProvider,
