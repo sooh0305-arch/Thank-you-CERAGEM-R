@@ -3,6 +3,8 @@ export interface Profile {
   id: string;
   name: string;
   department: string;
+  position?: string;
+  email?: string;
   role: 'admin' | 'user';
   giving_budget: number;
   received_wallet: number;

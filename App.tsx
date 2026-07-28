@@ -8,6 +8,7 @@ import AdminDashboard from './components/AdminDashboard';
 import Guide from './components/Guide';
 import GiftShop from './components/GiftShop';
 import PasswordChangeModal from './components/PasswordChangeModal';
+import ProfileOnboarding from './components/ProfileOnboarding';
 import { api } from './lib/api';
 import { Profile, Notification } from './types';
 import { auth, db } from './lib/firebase';
@@ -194,6 +195,24 @@ const App: React.FC = () => {
     loadAppData();
   };
 
+  const handleProfileUpdated = async () => {
+    if (currentUser?.id) {
+      const updated = await api.getUser(currentUser.id);
+      if (updated) {
+        setCurrentUser(updated);
+      }
+      loadAppData();
+    }
+  };
+
+  const isProfileIncomplete = Boolean(
+    currentUser && (
+      !currentUser.name || !currentUser.name.trim() ||
+      !currentUser.department || !currentUser.department.trim() ||
+      !currentUser.position || !currentUser.position.trim()
+    )
+  );
+
   if (isLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-[#FAF9F6] text-slate-900 gap-4">
@@ -207,6 +226,21 @@ const App: React.FC = () => {
     return <LandingPage onLogin={handleLogin} />;
   }
 
+  // SAML / SSO Profile Onboarding if name, department, or position is missing
+  if (isProfileIncomplete) {
+    const userWithAuthEmail = {
+      ...currentUser,
+      email: currentUser.email || auth.currentUser?.email || ''
+    };
+    return (
+      <ProfileOnboarding 
+        user={userWithAuthEmail}
+        onProfileUpdated={handleProfileUpdated}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   return (
     <>
       <Layout 
@@ -218,6 +252,7 @@ const App: React.FC = () => {
         unreadNotifications={unreadNotifications}
         onNotificationClick={handleNotificationClickInHeader}
         onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+        onProfileUpdated={handleProfileUpdated}
       >
         <div className="animate-fade-in">
           {currentPage === 'dashboard' && (

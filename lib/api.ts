@@ -208,15 +208,24 @@ export const api = {
   async ensureProfileExists(uid: string, email: string, displayName?: string | null): Promise<Profile> {
     const docRef = doc(db, "profiles", uid);
     const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      return { id: snap.id, ...snap.data() } as Profile;
-    }
     const normalizedEmail = email.toLowerCase().trim();
+    if (snap.exists()) {
+      const data = snap.data();
+      if (!data.email && normalizedEmail) {
+        try {
+          await updateDoc(docRef, { email: normalizedEmail });
+          data.email = normalizedEmail;
+        } catch (e) {}
+      }
+      return { id: snap.id, ...data } as Profile;
+    }
     const empInfo = initialEmployees.find(e => e.email.toLowerCase().trim() === normalizedEmail);
     const newProfile = {
       id: uid,
-      name: empInfo ? empInfo.name : (displayName || email.split('@')[0]),
-      department: empInfo ? empInfo.dept : "세라제머",
+      name: empInfo ? empInfo.name : (displayName || ''),
+      department: empInfo ? empInfo.dept : '',
+      position: '',
+      email: normalizedEmail,
       role: empInfo ? empInfo.role : "user",
       giving_budget: 10000,
       received_wallet: 0,
@@ -570,9 +579,27 @@ export const api = {
 
   async updateDepartment(userId: string, newDept: string): Promise<boolean> {
     try {
-      await updateDoc(doc(db, getPath("profiles"), userId), { department: newDept });
+      await updateDoc(doc(db, getPath("profiles"), userId), { department: newDept.trim() });
       return true;
     } catch { return false; }
+  },
+
+  async updateUserProfile(userId: string, updates: { name?: string; department?: string; position?: string; email?: string; role?: 'admin' | 'user' }): Promise<boolean> {
+    try {
+      const docRef = doc(db, getPath("profiles"), userId);
+      const cleanData: Record<string, any> = {};
+      if (updates.name !== undefined) cleanData.name = updates.name.trim();
+      if (updates.department !== undefined) cleanData.department = updates.department.trim();
+      if (updates.position !== undefined) cleanData.position = updates.position.trim();
+      if (updates.email !== undefined) cleanData.email = updates.email.trim();
+      if (updates.role !== undefined) cleanData.role = updates.role;
+      
+      await updateDoc(docRef, cleanData);
+      return true;
+    } catch (e) {
+      console.error("updateUserProfile error:", e);
+      return false;
+    }
   },
 
   async addPoints(userId: string, points: number): Promise<boolean> {

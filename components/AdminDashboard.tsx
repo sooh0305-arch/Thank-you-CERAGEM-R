@@ -29,9 +29,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
   
   // Modals state
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDepartment, setEditDepartment] = useState('');
+  const [editPosition, setEditPosition] = useState('');
+  const [editRole, setEditRole] = useState<'admin' | 'user'>('user');
   const [addingPointsUser, setAddingPointsUser] = useState<Profile | null>(null);
   const [pointsToAdd, setPointsToAdd] = useState(100);
-  const [newDepartment, setNewDepartment] = useState('');
   const [selectedPraiseDetail, setSelectedPraiseDetail] = useState<Transaction | null>(null);
 
   useEffect(() => {
@@ -98,13 +101,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
     }
   };
 
-  const handleUpdateDept = async () => {
+  const handleOpenEditUser = (user: Profile) => {
+    setEditingUser(user);
+    setEditName(user.name || '');
+    setEditDepartment(user.department || '');
+    setEditPosition(user.position || '');
+    setEditRole(user.role || 'user');
+  };
+
+  const handleUpdateUserProfile = async () => {
     if (!editingUser) return;
-    const success = await api.updateDepartment(editingUser.id, newDepartment);
+    const trimmedName = editName.trim();
+    const trimmedDept = editDepartment.trim();
+    const trimmedPos = editPosition.trim();
+
+    if (!trimmedName || !trimmedDept || !trimmedPos) {
+      alert('이름, 팀(부서명), 직급은 모두 필수 입력 사항입니다.');
+      return;
+    }
+
+    const success = await api.updateUserProfile(editingUser.id, {
+      name: trimmedName,
+      department: trimmedDept,
+      position: trimmedPos,
+      role: editRole
+    });
+
     if (success) {
-      alert('부서 정보가 수정되었습니다.');
+      alert('사용자 정보가 성공적으로 수정되었습니다.');
       setEditingUser(null);
       fetchData();
+      if (refreshData) await refreshData();
+    } else {
+      alert('사용자 정보 수정 중 오류가 발생했습니다.');
     }
   };
 
@@ -398,20 +427,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                     <table className="w-full min-w-[600px]">
                       <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
                         <tr>
-                          <th className="px-6 py-4 text-left font-semibold">사용자 프로필</th>
-                          <th className="px-6 py-4 text-left font-semibold">부서명</th>
+                          <th className="px-6 py-4 text-left font-semibold">사용자 / 직급</th>
+                          <th className="px-6 py-4 text-left font-semibold">팀 (부서명)</th>
                           <th className="px-6 py-4 text-right font-semibold">보유 / 예산</th>
                           <th className="px-6 py-4 text-right font-semibold">작업 관리</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {users.filter(u => u.name.includes(searchTerm) || u.department.includes(searchTerm)).map(user => (
+                        {users.filter(u => u.name.includes(searchTerm) || u.department.includes(searchTerm) || (u.position && u.position.includes(searchTerm))).map(user => (
                           <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                             <td className="px-6 py-4">
                               <div className="flex items-center">
                                 <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-semibold text-slate-800 text-xs">{user.name}</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-slate-800 text-xs">{user.name}</span>
+                                    {user.position && (
+                                      <span className="bg-slate-100 text-slate-700 text-[10px] px-1.5 py-0.5 rounded font-extrabold border border-slate-200">
+                                        {user.position}
+                                      </span>
+                                    )}
                                     {user.role === 'admin' && <span className="bg-[#E63946]/10 text-[#E63946] text-[8px] px-1.5 py-0.5 rounded-md font-bold tracking-wider">ADMIN</span>}
                                   </div>
                                   <div className="text-[9px] text-slate-400 mt-0.5">UID: {user.id.substring(0, 8)}</div>
@@ -419,8 +453,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                               </div>
                             </td>
                             <td className="px-6 py-4 text-xs font-semibold text-slate-600">
-                              <button onClick={() => { setEditingUser(user); setNewDepartment(user.department); }} className="hover:text-[#E63946] flex items-center gap-1.5 bg-slate-50 border border-slate-150 px-2 py-1 rounded-lg transition-colors text-[11px]">
-                                {user.department} <Edit3 size={10} />
+                              <button onClick={() => handleOpenEditUser(user)} className="hover:text-[#E63946] flex items-center gap-1.5 bg-slate-50 border border-slate-150 px-2.5 py-1 rounded-lg transition-colors text-[11px] font-bold">
+                                {user.department || '팀 미설정'} <Edit3 size={10} />
                               </button>
                             </td>
                             <td className="px-6 py-4 text-right">
@@ -429,6 +463,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                             </td>
                             <td className="px-6 py-4 text-right">
                                <div className="flex items-center justify-end gap-1.5">
+                                 <button 
+                                   onClick={() => handleOpenEditUser(user)}
+                                   className="p-1.5 hover:bg-slate-100 text-slate-700 rounded-lg transition-all"
+                                   title="프로필 상세 수정"
+                                 >
+                                   <Edit3 size={13} />
+                                 </button>
                                  <button 
                                    onClick={() => { setAddingPointsUser(user); setPointsToAdd(100); }}
                                    className="p-1.5 hover:bg-[#E63946]/5 text-[#E63946] rounded-lg transition-all"
@@ -752,29 +793,80 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
         </div>
       </div>
 
-      {/* MODAL: Edit department */}
+      {/* MODAL: Edit User Profile (Admin) */}
       {editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-sm p-7 space-y-5 transform animate-scale-in">
-            <div className="flex justify-between items-center">
-              <h3 className="text-base font-bold text-slate-800">부서 수정</h3>
+          <div className="bg-white rounded-2xl border-2 border-slate-900 shadow-brutal-black w-full max-w-md p-6 space-y-4 transform animate-scale-in">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-900">사용자 정보 수정 (관리자)</h3>
+                <p className="text-[11px] text-slate-400 font-bold mt-0.5">오타 수정 또는 인사이동 정보를 반영합니다.</p>
+              </div>
               <button onClick={() => setEditingUser(null)} className="p-1 hover:bg-slate-50 rounded-full text-slate-400"><X size={18} /></button>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">사용자: {editingUser.name}</label>
-              <input 
-                type="text" 
-                className="w-full p-3 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl focus:border-[#E63946] focus:outline-none font-medium text-sm text-slate-800"
-                value={newDepartment}
-                onChange={(e) => setNewDepartment(e.target.value)}
-              />
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-1">이름 *</label>
+                <input 
+                  type="text" 
+                  className="w-full p-3 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-xl focus:outline-none font-bold text-sm text-slate-900"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="예: 홍길동"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-1">팀 (부서명) *</label>
+                <input 
+                  type="text" 
+                  className="w-full p-3 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-xl focus:outline-none font-bold text-sm text-slate-900"
+                  value={editDepartment}
+                  onChange={(e) => setEditDepartment(e.target.value)}
+                  placeholder="세라제머육성팀"
+                />
+                <p className="text-[10px] font-bold text-slate-400 mt-1">사내 공식 팀명으로 입력해주세요</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-1">직급 *</label>
+                <input 
+                  type="text" 
+                  className="w-full p-3 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-xl focus:outline-none font-bold text-sm text-slate-900"
+                  value={editPosition}
+                  onChange={(e) => setEditPosition(e.target.value)}
+                  placeholder="예: 매니저, 팀장, 책임"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-1">권한</label>
+                <select
+                  className="w-full p-3 bg-slate-50 border-2 border-slate-900 rounded-xl font-bold text-xs text-slate-900 focus:outline-none"
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as 'admin' | 'user')}
+                >
+                  <option value="user">일반 사용자 (USER)</option>
+                  <option value="admin">시스템 관리자 (ADMIN)</option>
+                </select>
+              </div>
             </div>
-            <button 
-              onClick={handleUpdateDept}
-              className="w-full py-3 bg-[#E63946] hover:bg-[#d52b38] text-white font-bold rounded-xl transition-all shadow-sm text-xs"
-            >
-              수정 완료
-            </button>
+
+            <div className="pt-2 flex gap-2">
+              <button 
+                onClick={() => setEditingUser(null)}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-xs transition-colors"
+              >
+                취소
+              </button>
+              <button 
+                onClick={handleUpdateUserProfile}
+                className="flex-1 py-3 bg-[#E63946] hover:bg-[#d52b38] text-white font-black rounded-xl text-xs transition-all border-2 border-slate-900 shadow-brutal-black"
+              >
+                수정 저장
+              </button>
+            </div>
           </div>
         </div>
       )}

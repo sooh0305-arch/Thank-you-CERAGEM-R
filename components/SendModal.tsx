@@ -61,7 +61,11 @@ const SendModal: React.FC<SendModalProps> = ({ isOpen, onClose, currentUser, use
   if (!isOpen) return null;
 
   const filteredUsers = users.filter(u => 
-    u.id !== currentUser.id && (u.name.includes(searchTerm) || u.department.includes(searchTerm))
+    u.id !== currentUser.id && (
+      u.name.includes(searchTerm) || 
+      u.department.includes(searchTerm) ||
+      (u.position && u.position.includes(searchTerm))
+    )
   );
 
   const handleSend = async () => {
@@ -146,8 +150,15 @@ const SendModal: React.FC<SendModalProps> = ({ isOpen, onClose, currentUser, use
                     >
                       <div className="flex items-center text-left">
                         <div className="min-w-0">
-                          <p className="font-bold text-slate-800 text-sm leading-tight">{u.name}</p>
-                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-1">{u.department}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-slate-800 text-sm leading-tight">{u.name}</p>
+                            {u.position && (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                {u.position}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-semibold tracking-wider mt-1">{u.department}</p>
                         </div>
                       </div>
                       {selectedUser?.id === u.id && <CheckCircle size={18} className="text-[#E63946]" />}

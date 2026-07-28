@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Home, History, Settings, LogOut, Lock, ShoppingBag, Menu, X, Bell, HelpCircle, Camera, Award, Wallet } from 'lucide-react';
+import { Home, History, Settings, LogOut, Lock, ShoppingBag, Menu, X, Bell, HelpCircle, User, Edit3 } from 'lucide-react';
 import { Profile, Notification } from '../types';
+import ProfileEditModal from './ProfileEditModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface LayoutProps {
   unreadNotifications: Notification[];
   onNotificationClick: (notif: Notification) => Promise<void>;
   onMarkAllAsRead: () => Promise<void>;
+  onProfileUpdated?: () => Promise<void>;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -23,10 +25,12 @@ const Layout: React.FC<LayoutProps> = ({
   onChangePassword, 
   unreadNotifications, 
   onNotificationClick, 
-  onMarkAllAsRead 
+  onMarkAllAsRead,
+  onProfileUpdated
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', icon: Home, label: '홈' },
@@ -94,19 +98,34 @@ const Layout: React.FC<LayoutProps> = ({
 
         {/* User Profile Footer */}
         <div className="relative z-10 p-6 border-t border-slate-800 bg-slate-900">
-          <div className="flex items-center mb-5">
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-white leading-tight truncate">{user.name}</p>
-              <p className="text-xs text-slate-400 truncate mt-0.5">{user.department}</p>
+          <div 
+            onClick={() => setIsEditProfileOpen(true)}
+            className="flex items-center justify-between mb-4 group cursor-pointer hover:bg-slate-800/60 p-2.5 -mx-2.5 rounded-xl transition-colors"
+            title="프로필 수정하기"
+          >
+            <div className="min-w-0 flex-1 pr-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-sm font-bold text-white leading-tight truncate">{user.name}</p>
+                {user.position && (
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700/80">
+                    {user.position}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 truncate mt-1 font-medium">{user.department}</p>
+            </div>
+            <div className="p-1.5 bg-slate-800 group-hover:bg-[#E63946] text-slate-400 group-hover:text-white rounded-lg transition-colors border border-slate-700">
+              <Edit3 size={13} />
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <button 
-              onClick={onChangePassword}
+              onClick={() => setIsEditProfileOpen(true)}
               className="flex items-center justify-center space-x-1 py-2 bg-slate-800 hover:bg-slate-700/80 rounded-xl text-xs font-semibold text-slate-200 transition-colors border border-slate-700"
             >
-              <Lock size={12} />
-              <span>비번 변경</span>
+              <User size={12} />
+              <span>프로필 수정</span>
             </button>
             <button 
               onClick={onLogout}
@@ -118,6 +137,17 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
       </aside>
+
+      {/* Self Profile Edit Modal */}
+      {isEditProfileOpen && (
+        <ProfileEditModal 
+          user={user}
+          onClose={() => setIsEditProfileOpen(false)}
+          onProfileUpdated={async () => {
+            if (onProfileUpdated) await onProfileUpdated();
+          }}
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-1 w-full lg:ml-72 transition-all duration-300">
