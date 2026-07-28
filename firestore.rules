@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Catch-All: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Profiles Collection
+    match /profiles/{userId} {
+      // Authenticated users can view user profiles (needed for praise search and recipient selection)
+      allow read: if isSignedIn();
+
+      // Users can create their own profile during signup/onboarding, but CANNOT self-grant points or admin role
+      allow create: if isOwner(userId) &&
+        incoming().giving_budget <= 10000 &&
+        incoming().received_wallet == 0 &&
+        incoming().spent_points == 0 &&
+        incoming().role == 'user';
+
+      // Users can update their own profile EXCEPT point fields and role
+      // Point fields (giving_budget, received_wallet, spent_points, praise_reset_at) and role MUST be modified via Server API
+      allow update: if (
+        isOwner(userId) &&
+        !incoming().diff(existing()).affectedKeys().hasAny(['giving_budget', 'received_wallet', 'spent_points', 'praise_reset_at', 'role'])
+      ) || isAdmin();
+
+      // Deletion is restricted to Admin
+      allow delete: if isAdmin();
+    }
+
+    // Transactions Collection (Praise records)
+    match /transactions/{transactionId} {
+      // Authenticated users can view praise transactions
+      allow read: if isSignedIn();
+
+      // Direct client writes are strictly BLOCKED! All praise sending MUST go through Server API.
+      allow write: if false;
+    }
+
+    // Withdrawals Collection (Gifticon purchases and cash out)
+    match /withdrawals/{withdrawalId} {
+      // Users can read their own withdrawal records, Admins can read all
+      allow read: if isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
+
+      // Direct client writes are strictly BLOCKED! All gifticon exchanges MUST go through Server API.
+      allow write: if false;
+    }
+
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
+
+      // Users can ONLY update the `is_read` status on their own notification
+      allow update: if isSignedIn() && 
+        resource.data.user_id == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['is_read']);
+
+      // Creation and deletion are handled exclusively by Server API
+      allow create, delete: if false;
+    }
+  }
+}

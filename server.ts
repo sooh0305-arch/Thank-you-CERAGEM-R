@@ -250,6 +250,372 @@ async function startServer() {
   app.get("/healthz", (_req, res) => res.status(200).send("ok"));
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
+  // Middleware to authenticate Firebase user token
+  type AuthenticatedRequest = express.Request & {
+    user?: {
+      uid: string;
+      email?: string;
+    };
+  };
+
+  const authenticateUser = async (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "인증 토큰이 필요합니다." });
+      }
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await getAdminAuth().verifyIdToken(token);
+      req.user = { uid: decoded.uid, email: decoded.email };
+      next();
+    } catch (err: any) {
+      console.error("[API Auth] Token verification failed:", err?.message || err);
+      return res.status(401).json({ error: "유효하지 않은 인증 토큰입니다." });
+    }
+  };
+
+  const requireAdmin = async (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ error: "인증이 필요합니다." });
+    }
+    try {
+      const db = getAdminDb();
+      const userDoc = await db.collection("profiles").doc(req.user.uid).get();
+      if (!userDoc.exists || userDoc.data()?.role !== "admin") {
+        return res.status(403).json({ error: "관리자 권한이 필요합니다." });
+      }
+      next();
+    } catch (err: any) {
+      console.error("[API Admin Check] Error:", err?.message || err);
+      return res.status(500).json({ error: "관리자 권한 확인 실패" });
+    }
+  };
+
+  // POST /api/praise - Atomic send praise & transfer points
+  app.post("/api/praise", authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { sender_id, receiver_id, core_value_id, points, message } = req.body;
+
+      if (req.user?.uid !== sender_id) {
+        return res.status(403).json({ error: "본인 명의로만 칭찬을 보낼 수 있습니다." });
+      }
+
+      if (sender_id === receiver_id) {
+        return res.status(400).json({ error: "자기 자신에게는 칭찬을 보낼 수 없습니다." });
+      }
+
+      const numPoints = Number(points);
+      if (isNaN(numPoints) || numPoints <= 0 || !Number.isInteger(numPoints)) {
+        return res.status(400).json({ error: "올바른 포인트 수량을 입력해주세요." });
+      }
+
+      if (numPoints > 1000) {
+        return res.status(400).json({ error: "1회 발송 시 수신자당 최대 1,000P까지 가능합니다." });
+      }
+
+      const trimmedMsg = String(message || "").trim();
+      if (!trimmedMsg) {
+        return res.status(400).json({ error: "칭찬 메시지를 입력해주세요." });
+      }
+
+      const db = getAdminDb();
+
+      // Check monthly per-recipient limit (max 1,000P per recipient per month)
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const txSnap = await db.collection("transactions")
+        .where("sender_id", "==", sender_id)
+        .where("receiver_id", "==", receiver_id)
+        .get();
+
+      let pointsSentToRecipientThisMonth = 0;
+      txSnap.forEach(doc => {
+        const d = doc.data();
+        const createdAt = d.created_at?.toDate ? d.created_at.toDate() : new Date(d.created_at);
+        if (createdAt >= startOfMonth) {
+          pointsSentToRecipientThisMonth += (d.points || 0);
+        }
+      });
+
+      if (pointsSentToRecipientThisMonth + numPoints > 1000) {
+        const remainingLimit = Math.max(0, 1000 - pointsSentToRecipientThisMonth);
+        return res.status(400).json({ 
+          error: `동일한 동료에게는 월 최대 1,000P까지만 발송 가능합니다. (이번 달 현재 보낸 포인트: ${pointsSentToRecipientThisMonth}P, 잔여 가능: ${remainingLimit}P)` 
+        });
+      }
+
+      // Execute atomic transaction
+      await db.runTransaction(async (transaction) => {
+        const senderRef = db.collection("profiles").doc(sender_id);
+        const receiverRef = db.collection("profiles").doc(receiver_id);
+
+        const senderSnap = await transaction.get(senderRef);
+        const receiverSnap = await transaction.get(receiverRef);
+
+        if (!senderSnap.exists) throw new Error("발신자 프로필을 찾을 수 없습니다.");
+        if (!receiverSnap.exists) throw new Error("수신자 프로필을 찾을 수 없습니다.");
+
+        const senderData = senderSnap.data()!;
+        const receiverData = receiverSnap.data()!;
+
+        const currentBudget = Number(senderData.giving_budget || 0);
+        if (currentBudget < numPoints) {
+          throw new Error(`칭찬 가능 예산이 부족합니다. (현재 예산: ${currentBudget}P)`);
+        }
+
+        transaction.update(senderRef, { giving_budget: currentBudget - numPoints });
+        transaction.update(receiverRef, { received_wallet: Number(receiverData.received_wallet || 0) + numPoints });
+
+        const txRef = db.collection("transactions").doc();
+        transaction.set(txRef, {
+          sender_id,
+          receiver_id,
+          core_value_id: Number(core_value_id || 1),
+          points: numPoints,
+          message: trimmedMsg,
+          created_at: FieldValue.serverTimestamp()
+        });
+
+        const notifRef = db.collection("notifications").doc();
+        transaction.set(notifRef, {
+          user_id: receiver_id,
+          transaction_id: txRef.id,
+          message: `${senderData.name || '동료'}님으로부터 ${numPoints}P 칭찬이 도착했습니다!`,
+          is_read: false,
+          created_at: FieldValue.serverTimestamp()
+        });
+      });
+
+      return res.json({ success: true, message: "칭찬과 포인트가 성공적으로 발송되었습니다." });
+    } catch (err: any) {
+      console.error("[API Praise] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "칭찬 발송 중 오류가 발생했습니다." });
+    }
+  });
+
+  // POST /api/withdraw - Gifticon exchange and withdrawal
+  app.post("/api/withdraw", authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { user_id, points, bank_name, account_number, account_holder } = req.body;
+
+      if (req.user?.uid !== user_id) {
+        return res.status(403).json({ error: "본인 계정으로만 신청할 수 있습니다." });
+      }
+
+      const numPoints = Number(points);
+      if (isNaN(numPoints) || numPoints <= 0 || !Number.isInteger(numPoints)) {
+        return res.status(400).json({ error: "올바른 포인트를 입력해주세요." });
+      }
+
+      if (bank_name !== '기프티콘 구매' && numPoints < 10000) {
+        return res.status(400).json({ error: "계좌 출금 신청은 최소 10,000P 이상부터 가능합니다." });
+      }
+
+      const db = getAdminDb();
+
+      let resultMsg = "";
+      await db.runTransaction(async (transaction) => {
+        const userRef = db.collection("profiles").doc(user_id);
+        const userSnap = await transaction.get(userRef);
+
+        if (!userSnap.exists) throw new Error("사용자를 찾을 수 없습니다.");
+        const userData = userSnap.data()!;
+
+        const currentWallet = Number(userData.received_wallet || 0);
+        if (currentWallet < numPoints) {
+          throw new Error(`신청 가능한 보유 포인트가 부족합니다. (현재 보유: ${currentWallet}P)`);
+        }
+
+        transaction.update(userRef, {
+          received_wallet: currentWallet - numPoints,
+          spent_points: Number(userData.spent_points || 0) + numPoints
+        });
+
+        const withdrawalRef = db.collection("withdrawals").doc();
+        transaction.set(withdrawalRef, {
+          user_id,
+          points: numPoints,
+          bank_name: String(bank_name || '기프티콘 구매').trim(),
+          account_number: String(account_number || '').trim(),
+          account_holder: String(account_holder || '').trim(),
+          status: 'pending',
+          created_at: FieldValue.serverTimestamp()
+        });
+
+        resultMsg = bank_name === '기프티콘 구매' 
+          ? "기프티콘 구매 신청이 성공적으로 완료되었습니다." 
+          : "출금 신청이 완료되었습니다.";
+      });
+
+      return res.json({ success: true, message: resultMsg });
+    } catch (err: any) {
+      console.error("[API Withdraw] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "신청 처리 중 오류가 발생했습니다." });
+    }
+  });
+
+  // POST /api/admin/withdrawal-status - Approve/Reject withdrawal
+  app.post("/api/admin/withdrawal-status", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { withdrawalId, status } = req.body;
+
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: "유효하지 않은 상태값입니다." });
+      }
+
+      const db = getAdminDb();
+
+      await db.runTransaction(async (transaction) => {
+        const withdrawalRef = db.collection("withdrawals").doc(withdrawalId);
+        const withdrawalSnap = await transaction.get(withdrawalRef);
+
+        if (!withdrawalSnap.exists) throw new Error("신청 내역을 찾을 수 없습니다.");
+        const withdrawalData = withdrawalSnap.data()!;
+
+        if (status === 'rejected' && withdrawalData.status === 'pending') {
+          const userRef = db.collection("profiles").doc(withdrawalData.user_id);
+          const userSnap = await transaction.get(userRef);
+
+          if (userSnap.exists) {
+            const userData = userSnap.data()!;
+            const refundedWallet = Number(userData.received_wallet || 0) + Number(withdrawalData.points || 0);
+            const newSpent = Math.max(0, Number(userData.spent_points || 0) - Number(withdrawalData.points || 0));
+
+            transaction.update(userRef, {
+              received_wallet: refundedWallet,
+              spent_points: newSpent
+            });
+          }
+          transaction.update(withdrawalRef, { status: 'rejected' });
+        } else {
+          transaction.update(withdrawalRef, { status });
+        }
+      });
+
+      return res.json({ success: true, message: "상태가 변경되었습니다." });
+    } catch (err: any) {
+      console.error("[API Admin Withdrawal Status] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "처리 중 오류가 발생했습니다." });
+    }
+  });
+
+  // POST /api/admin/add-points - Grant points manually
+  app.post("/api/admin/add-points", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { userId, points } = req.body;
+
+      const numPoints = Number(points);
+      if (isNaN(numPoints) || numPoints <= 0 || !Number.isInteger(numPoints)) {
+        return res.status(400).json({ error: "올바른 포인트 수량을 입력해주세요." });
+      }
+
+      const db = getAdminDb();
+
+      await db.runTransaction(async (transaction) => {
+        const userRef = db.collection("profiles").doc(userId);
+        const userSnap = await transaction.get(userRef);
+
+        if (!userSnap.exists) throw new Error("사용자를 찾을 수 없습니다.");
+        const userData = userSnap.data()!;
+
+        transaction.update(userRef, {
+          received_wallet: Number(userData.received_wallet || 0) + numPoints
+        });
+      });
+
+      return res.json({ success: true, message: `${numPoints}P 포인트가 성공적으로 지급되었습니다.` });
+    } catch (err: any) {
+      console.error("[API Admin Add Points] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "포인트 지급 중 오류가 발생했습니다." });
+    }
+  });
+
+  // POST /api/admin/update-user - Admin update user profile
+  app.post("/api/admin/update-user", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { userId, updates } = req.body;
+      if (!userId || !updates) {
+        return res.status(400).json({ error: "필수 정보가 누락되었습니다." });
+      }
+
+      const db = getAdminDb();
+      const userRef = db.collection("profiles").doc(userId);
+
+      const cleanData: Record<string, any> = {};
+      if (updates.name !== undefined) cleanData.name = String(updates.name).trim();
+      if (updates.department !== undefined) cleanData.department = String(updates.department).trim();
+      if (updates.position !== undefined) cleanData.position = String(updates.position).trim();
+      if (updates.email !== undefined) cleanData.email = String(updates.email).trim().toLowerCase();
+      if (updates.role !== undefined && ['admin', 'user'].includes(updates.role)) cleanData.role = updates.role;
+
+      await userRef.update(cleanData);
+      return res.json({ success: true, message: "사용자 정보가 수정되었습니다." });
+    } catch (err: any) {
+      console.error("[API Admin Update User] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "사용자 정보 수정 실패" });
+    }
+  });
+
+  // POST /api/admin/reset-budgets - Reset giving budget to 10000
+  app.post("/api/admin/reset-budgets", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const db = getAdminDb();
+      const snap = await db.collection("profiles").get();
+
+      const batch = db.batch();
+      const nowISO = new Date().toISOString();
+
+      snap.forEach(doc => {
+        batch.update(doc.ref, { giving_budget: 10000, praise_reset_at: nowISO });
+      });
+
+      await batch.commit();
+      return res.json({ success: true, message: "전체 사용자 발송 예산이 10,000P로 초기화되었습니다." });
+    } catch (err: any) {
+      console.error("[API Admin Reset Budgets] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "예산 초기화 실패" });
+    }
+  });
+
+  // POST /api/admin/reset-system - Reset system data
+  app.post("/api/admin/reset-system", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const db = getAdminDb();
+
+      const deleteColl = async (collName: string) => {
+        const snap = await db.collection(collName).get();
+        const batch = db.batch();
+        snap.forEach(d => batch.delete(d.ref));
+        if (snap.size > 0) await batch.commit();
+      };
+
+      await deleteColl("transactions");
+      await deleteColl("notifications");
+      await deleteColl("withdrawals");
+
+      const profilesSnap = await db.collection("profiles").get();
+      const batch = db.batch();
+      const nowTS = FieldValue.serverTimestamp();
+
+      profilesSnap.forEach(d => {
+        batch.update(d.ref, {
+          giving_budget: 10000,
+          received_wallet: 0,
+          spent_points: 0,
+          praise_reset_at: nowTS
+        });
+      });
+
+      if (profilesSnap.size > 0) await batch.commit();
+
+      return res.json({ success: true, message: "시스템 데이터가 성공적으로 초기화되었습니다." });
+    } catch (err: any) {
+      console.error("[API Admin Reset System] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "시스템 초기화 실패" });
+    }
+  });
+
   // GET /auth/login - Generates SAML Request and submits form to Naver Works
   app.get("/auth/login", async (req, res) => {
     try {

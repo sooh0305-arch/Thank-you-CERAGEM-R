@@ -311,36 +311,28 @@ export const api = {
 
   async sendPraise(data: { sender_id: string; receiver_id: string; core_value_id: number; points: number; message: string }): Promise<boolean> {
     try {
-      await runTransaction(db, async (transaction) => {
-        const senderRef = doc(db, getPath("profiles"), data.sender_id);
-        const receiverRef = doc(db, getPath("profiles"), data.receiver_id);
-        const senderSnap = await transaction.get(senderRef);
-        const receiverSnap = await transaction.get(receiverRef);
-        
-        if (!senderSnap.exists() || !receiverSnap.exists()) throw new Error("User not found");
-        const senderData = senderSnap.data() as Profile;
-        const receiverData = receiverSnap.data() as Profile;
-        
-        if (senderData.giving_budget < data.points) throw new Error("Insufficient budget");
-
-        transaction.update(senderRef, { giving_budget: senderData.giving_budget - data.points });
-        transaction.update(receiverRef, { received_wallet: (receiverData.received_wallet || 0) + data.points });
-
-        const txRef = doc(collection(db, getPath("transactions")));
-        transaction.set(txRef, { ...data, created_at: serverTimestamp() });
-
-        const notifRef = doc(collection(db, getPath("notifications")));
-        transaction.set(notifRef, {
-          user_id: data.receiver_id,
-          transaction_id: txRef.id,
-          message: `${senderData.name}님으로부터 ${data.points}P 칭찬이 도착했습니다!`,
-          is_read: false,
-          created_at: serverTimestamp()
-        });
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        console.error("sendPraise error: User not authenticated");
+        return false;
+      }
+      const response = await fetch("/api/praise", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
       });
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.error || "칭찬 발송 실패");
+        return false;
+      }
       return true;
-    } catch (e) {
+    } catch (e: any) {
       console.error("Transaction failed: ", e);
+      alert(e.message || "칭찬 발송 중 오류가 발생했습니다.");
       return false;
     }
   },
@@ -376,37 +368,31 @@ export const api = {
 
   async requestWithdrawal(userId: string, points: number, bankName: string, accountNumber: string, accountHolder: string): Promise<{ success: boolean; message: string }> {
     try {
-      if (bankName !== '기프티콘 구매' && points < 10000) {
-        return { success: false, message: "출금 신청은 최소 10,000P 이상 가능합니다." };
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        return { success: false, message: "인증 세션이 만료되었습니다. 다시 로그인해주세요." };
       }
-      return await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, "profiles", userId);
-        const userSnap = await transaction.get(userRef);
-        if (!userSnap.exists()) return { success: false, message: "사용자를 찾을 수 없습니다." };
-        const userData = userSnap.data() as Profile;
-        if (userData.received_wallet < points) return { success: false, message: "출금 가능한 포인트가 부족합니다." };
-        
-        transaction.update(userRef, {
-          received_wallet: userData.received_wallet - points,
-          spent_points: (userData.spent_points || 0) + points
-        });
-        
-        const withdrawalRef = doc(collection(db, "withdrawals"));
-        transaction.set(withdrawalRef, {
+      const response = await fetch("/api/withdraw", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
           user_id: userId,
-          points: points,
+          points,
           bank_name: bankName,
           account_number: accountNumber,
-          account_holder: accountHolder,
-          status: 'pending',
-          created_at: serverTimestamp()
-        });
-        
-        const successMsg = bankName === '기프티콘 구매' ? "기프티콘 구매가 신청되었습니다." : "출금 신청이 완료되었습니다.";
-        return { success: true, message: successMsg };
+          account_holder: accountHolder
+        })
       });
+      const result = await response.json();
+      if (!response.ok) {
+        return { success: false, message: result.error || "신청 실패" };
+      }
+      return { success: true, message: result.message || "신청이 완료되었습니다." };
     } catch (e: any) {
-      return { success: false, message: e.message };
+      return { success: false, message: e.message || "신청 중 오류가 발생했습니다." };
     }
   },
 
@@ -433,30 +419,17 @@ export const api = {
 
   async updateWithdrawalStatus(withdrawalId: string, status: 'approved' | 'rejected'): Promise<boolean> {
     try {
-      const withdrawalRef = doc(db, "withdrawals", withdrawalId);
-      const withdrawalSnap = await getDoc(withdrawalRef);
-      if (!withdrawalSnap.exists()) return false;
-      
-      const withdrawalData = withdrawalSnap.data() as any;
-      
-      // If rejecting, we need to return the points to the user
-      if (status === 'rejected' && withdrawalData.status === 'pending') {
-        await runTransaction(db, async (transaction) => {
-          const userRef = doc(db, "profiles", withdrawalData.user_id);
-          const userSnap = await transaction.get(userRef);
-          if (userSnap.exists()) {
-            const userData = userSnap.data() as Profile;
-            transaction.update(userRef, {
-              received_wallet: (userData.received_wallet || 0) + withdrawalData.points,
-              spent_points: Math.max(0, (userData.spent_points || 0) - withdrawalData.points)
-            });
-          }
-          transaction.update(withdrawalRef, { status: 'rejected' });
-        });
-      } else {
-        await updateDoc(withdrawalRef, { status });
-      }
-      return true;
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return false;
+      const response = await fetch("/api/admin/withdrawal-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ withdrawalId, status })
+      });
+      return response.ok;
     } catch (e) {
       console.error("updateWithdrawalStatus error:", e);
       return false;
@@ -564,13 +537,17 @@ export const api = {
 
   async resetAllBudgets(): Promise<{ success: boolean; error?: string }> {
     try {
-      const snap = await getDocs(collection(db, getPath("profiles")));
-      const batch = writeBatch(db);
-      const now = Timestamp.now();
-      snap.docs.forEach(d => {
-        batch.update(d.ref, { giving_budget: 10000, praise_reset_at: now.toDate().toISOString() });
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return { success: false, error: "인증 세션이 만료되었습니다." };
+      const response = await fetch("/api/admin/reset-budgets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
       });
-      await batch.commit();
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error };
       return { success: true };
     } catch (e: any) {
       return { success: false, error: e.message };
@@ -586,16 +563,31 @@ export const api = {
 
   async updateUserProfile(userId: string, updates: { name?: string; department?: string; position?: string; email?: string; role?: 'admin' | 'user' }): Promise<boolean> {
     try {
-      const docRef = doc(db, getPath("profiles"), userId);
-      const cleanData: Record<string, any> = {};
-      if (updates.name !== undefined) cleanData.name = updates.name.trim();
-      if (updates.department !== undefined) cleanData.department = updates.department.trim();
-      if (updates.position !== undefined) cleanData.position = updates.position.trim();
-      if (updates.email !== undefined) cleanData.email = updates.email.trim();
-      if (updates.role !== undefined) cleanData.role = updates.role;
-      
-      await updateDoc(docRef, cleanData);
-      return true;
+      const token = await auth.currentUser?.getIdToken();
+      if (token) {
+        const response = await fetch("/api/admin/update-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({ userId, updates })
+        });
+        if (response.ok) return true;
+      }
+
+      // Fallback for self profile updates (updating non-sensitive name, department, position)
+      if (auth.currentUser?.uid === userId && !updates.role) {
+        const docRef = doc(db, getPath("profiles"), userId);
+        const cleanData: Record<string, any> = {};
+        if (updates.name !== undefined) cleanData.name = updates.name.trim();
+        if (updates.department !== undefined) cleanData.department = updates.department.trim();
+        if (updates.position !== undefined) cleanData.position = updates.position.trim();
+        if (updates.email !== undefined) cleanData.email = updates.email.trim();
+        await updateDoc(docRef, cleanData);
+        return true;
+      }
+      return false;
     } catch (e) {
       console.error("updateUserProfile error:", e);
       return false;
@@ -604,12 +596,17 @@ export const api = {
 
   async addPoints(userId: string, points: number): Promise<boolean> {
     try {
-      const userRef = doc(db, getPath("profiles"), userId);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) return false;
-      const userData = userSnap.data() as Profile;
-      await updateDoc(userRef, { received_wallet: (userData.received_wallet || 0) + points });
-      return true;
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return false;
+      const response = await fetch("/api/admin/add-points", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId, points })
+      });
+      return response.ok;
     } catch (e) {
       console.error("addPoints error:", e);
       return false;
@@ -645,52 +642,18 @@ export const api = {
 
   async resetSystemData(): Promise<{ success: boolean; message: string }> {
     try {
-      const batchLimit = 500;
-      const deleteCollection = async (path: string) => {
-        const q = query(collection(db, path));
-        const snapshot = await getDocs(q);
-        let currentBatch = writeBatch(db);
-        let count = 0;
-        const chunks = [];
-        snapshot.docs.forEach((doc) => {
-          currentBatch.delete(doc.ref);
-          count++;
-          if (count === batchLimit) {
-            chunks.push(currentBatch.commit());
-            currentBatch = writeBatch(db);
-            count = 0;
-          }
-        });
-        if (count > 0) chunks.push(currentBatch.commit());
-        await Promise.all(chunks);
-      };
-
-      await deleteCollection("transactions");
-      await deleteCollection("notifications");
-      await deleteCollection("withdrawals");
-
-      const profiles = await getDocs(collection(db, "profiles"));
-      let currentBatch = writeBatch(db);
-      let count = 0;
-      const chunks = [];
-      profiles.docs.forEach((d) => {
-        currentBatch.update(d.ref, {
-          giving_budget: 10000,
-          received_wallet: 0,
-          spent_points: 0,
-          praise_reset_at: serverTimestamp()
-        });
-        count++;
-        if (count === batchLimit) {
-          chunks.push(currentBatch.commit());
-          currentBatch = writeBatch(db);
-          count = 0;
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return { success: false, message: "인증 세션이 만료되었습니다." };
+      const response = await fetch("/api/admin/reset-system", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         }
       });
-      if (count > 0) chunks.push(currentBatch.commit());
-      await Promise.all(chunks);
-
-      return { success: true, message: "시스템 데이터가 완전히 초기화되었습니다." };
+      const data = await response.json();
+      if (!response.ok) return { success: false, message: data.error || "시스템 초기화 실패" };
+      return { success: true, message: data.message };
     } catch (e: any) {
       console.error("System reset failed:", e);
       return { success: false, message: "초기화 실패: " + e.message };

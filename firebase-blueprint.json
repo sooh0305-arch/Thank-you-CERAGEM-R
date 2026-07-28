@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile with budget and wallet points",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 50 },
+        "department": { "type": "string", "maxLength": 50 },
+        "position": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "giving_budget": { "type": "number" },
+        "received_wallet": { "type": "number" },
+        "spent_points": { "type": "number" },
+        "points_migrated": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name", "department", "role", "giving_budget", "received_wallet"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Praise point transfer transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sender_id": { "type": "string" },
+        "receiver_id": { "type": "string" },
+        "core_value_id": { "type": "number" },
+        "points": { "type": "number" },
+        "message": { "type": "string", "maxLength": 1000 },
+        "created_at": { "type": "string" }
+      },
+      "required": ["sender_id", "receiver_id", "points", "message"]
+    },
+    "Withdrawal": {
+      "title": "Withdrawal",
+      "description": "Gifticon purchase or withdrawal request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "points": { "type": "number" },
+        "bank_name": { "type": "string" },
+        "account_number": { "type": "string" },
+        "account_holder": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id", "points", "bank_name", "status"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notification for received praise or system updates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "transaction_id": { "type": "string" },
+        "message": { "type": "string" },
+        "is_read": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id", "message", "is_read"]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": { "$ref": "#/entities/Profile" },
+      "description": "User profiles collection"
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Praise transactions collection"
+    },
+    "/withdrawals/{withdrawalId}": {
+      "schema": { "$ref": "#/entities/Withdrawal" },
+      "description": "Gifticon and withdrawal requests collection"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "User notifications collection"
+    }
+  }
+}
