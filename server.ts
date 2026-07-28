@@ -3,11 +3,90 @@ import path from "path";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { SAML, ValidateInResponseTo } from "@node-saml/node-saml";
+import xmlCrypto from "xml-crypto";
+
+// @ts-ignore
+const xmlModule = typeof require !== "undefined" ? require("@node-saml/node-saml/lib/xml") : null;
+// @ts-ignore
+const { assertRequired } = typeof require !== "undefined" ? require("@node-saml/node-saml/lib/utility") : { assertRequired: () => {} };
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
+
+// Patch node-saml getVerifiedXml to support empty Reference URI="" (enveloped signature for root element / saml2p:Response)
+if (xmlModule && xmlModule.getVerifiedXml) {
+  xmlModule.getVerifiedXml = (fullXml: string, currentNode: Element, pemFiles: string[]) => {
+    const normalizedXml = fullXml.replace(/\r\n?/g, "\n");
+    const signatures = xmlModule.xpath.selectElements(
+      currentNode,
+      "./*[local-name(.)='Signature' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']"
+    );
+    if (signatures.length < 1) {
+      return null;
+    }
+    if (signatures.length > 1) {
+      throw new Error("Too many signatures found for this element");
+    }
+
+    const signature = signatures[0];
+    const xpathTransformQuery = ".//*[local-name(.)='Transform' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']";
+    const transforms = xmlModule.xpath.selectElements(signature, xpathTransformQuery);
+    if (transforms.length > 2) {
+      throw new Error("Invalid signature, too many transforms");
+    }
+
+    for (const pemFile of pemFiles) {
+      const sig = new xmlCrypto.SignedXml();
+      sig.publicCert = pemFile;
+      sig.loadSignature(signature);
+
+      const refs = sig.getReferences();
+      if (refs.length !== 1) return null;
+      if (!signature.parentNode) return null;
+
+      const ref = refs[0];
+      const refUri = ref.uri;
+      const refId = refUri && refUri[0] === "#" ? refUri.substring(1) : refUri;
+
+      if (refUri === "" || refUri === "#") {
+        // Empty URI refers to the root element containing the signature (signature.parentNode)
+        if (!signature.parentNode) {
+          throw new Error("Invalid signature: Signature element has no parent");
+        }
+      } else {
+        assertRequired(refId, "signature reference uri not found");
+        if (refId.includes("'") || refId.includes('"')) {
+          throw new Error("ref URI included quote character ' or \". Not a valid ID, and not allowed");
+        }
+        const totalReferencedNodes = xmlModule.xpath.selectElements(
+          signature.ownerDocument!,
+          `//*[@ID="${refId}"]`
+        );
+        if (totalReferencedNodes.length !== 1) {
+          throw new Error("Invalid signature: ID cannot refer to more than one element");
+        }
+        if (totalReferencedNodes[0] !== signature.parentNode) {
+          throw new Error("Invalid signature: Referenced node does not refer to it's parent element");
+        }
+      }
+
+      try {
+        if (!sig.checkSignature(normalizedXml)) {
+          continue;
+        }
+        if (sig.getSignedReferences().length !== 1) {
+          throw new Error("Only 1 signed references should be present in signature");
+        }
+        return sig.getSignedReferences()[0];
+      } catch (_a) {
+        // try next cert
+      }
+    }
+    return null;
+  };
+}
 
 // Lazy initialization helpers for Firebase Admin
 function getAdmin() {
