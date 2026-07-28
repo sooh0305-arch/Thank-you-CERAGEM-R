@@ -140,7 +140,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ user, onClos
             <input 
               type="text" 
               required
-              placeholder="예: 매니저, 팀장, 책임"
+              placeholder="예: 매니저, 팀장, 실장"
               value={position}
               onChange={e => setPosition(e.target.value)}
               className="w-full p-3 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-xl focus:outline-none transition-all font-bold text-sm text-slate-900"

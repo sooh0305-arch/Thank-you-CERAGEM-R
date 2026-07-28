@@ -836,7 +836,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                   className="w-full p-3 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-xl focus:outline-none font-bold text-sm text-slate-900"
                   value={editPosition}
                   onChange={(e) => setEditPosition(e.target.value)}
-                  placeholder="예: 매니저, 팀장, 책임"
+                  placeholder="예: 매니저, 팀장, 실장"
                 />
               </div>
 

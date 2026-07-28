@@ -161,7 +161,7 @@ export const ProfileOnboarding: React.FC<ProfileOnboardingProps> = ({ user, onPr
             <input 
               type="text" 
               required
-              placeholder="예: 매니저, 팀장, 책임"
+              placeholder="예: 매니저, 팀장, 실장"
               value={position} 
               onChange={e => setPosition(e.target.value)}
               className="w-full p-3.5 bg-slate-50 focus:bg-white border-2 border-slate-900 rounded-2xl focus:outline-none transition-all text-slate-900 font-bold text-sm shadow-[2px_2px_0px_0px_rgba(15,23,42,0.15)] focus:shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]"
