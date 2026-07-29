@@ -81,6 +81,22 @@
     "/notifications/{notificationId}": {
       "schema": { "$ref": "#/entities/Notification" },
       "description": "User notifications collection"
+    },
+    "/system_config/{configId}": {
+      "schema": { "$ref": "#/entities/SystemConfig" },
+      "description": "System configuration documents"
     }
-  }
+  },
+  "entities": {
+    "SystemConfig": {
+      "title": "SystemConfig",
+      "description": "System-wide launcher configurations",
+      "type": "object",
+      "properties": {
+        "is_open": { "type": "boolean" },
+        "updated_at": { "type": "string" },
+        "updated_by": { "type": "string" }
+      },
+      "required": ["is_open"]
+    },
 }

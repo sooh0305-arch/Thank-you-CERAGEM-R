@@ -14,6 +14,7 @@ interface LayoutProps {
   onNotificationClick: (notif: Notification) => Promise<void>;
   onMarkAllAsRead: () => Promise<void>;
   onProfileUpdated?: () => Promise<void>;
+  isSystemOpen?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -26,7 +27,8 @@ const Layout: React.FC<LayoutProps> = ({
   unreadNotifications, 
   onNotificationClick, 
   onMarkAllAsRead,
-  onProfileUpdated
+  onProfileUpdated,
+  isSystemOpen = false
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -79,18 +81,28 @@ const Layout: React.FC<LayoutProps> = ({
         <nav className="relative z-10 flex-1 p-6 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = currentPage === item.id;
+            const isLockedForUser = item.id === 'giftshop' && !isSystemOpen && user.role !== 'admin';
+
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavigate(item.id)}
-                className={`w-full flex items-center space-x-3.5 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${
                   isActive 
                     ? 'bg-[#E63946] text-white font-bold shadow-sm' 
                     : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                 }`}
               >
-                <item.icon size={18} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
-                <span className="text-sm font-medium tracking-wide">{item.label}</span>
+                <div className="flex items-center space-x-3.5 min-w-0">
+                  <item.icon size={18} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
+                  <span className="text-sm font-medium tracking-wide truncate">{item.label}</span>
+                </div>
+                {isLockedForUser && (
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-800 text-rose-300 border border-slate-700/80 shrink-0 flex items-center gap-1">
+                    <Lock size={10} />
+                    <span>준비중</span>
+                  </span>
+                )}
               </button>
             );
           })}
@@ -170,6 +182,12 @@ const Layout: React.FC<LayoutProps> = ({
            </div>
            
            <div className="flex items-center space-x-3 lg:space-x-4">
+              {!isSystemOpen && (
+                <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200/80 rounded-full text-xs font-bold shadow-xs">
+                  <Lock size={12} className="text-amber-600" />
+                  <span>정식 오픈 준비 중</span>
+                </div>
+              )}
               {/* Notification Badge in Header */}
               <div className="relative">
                 <button 

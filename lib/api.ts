@@ -660,6 +660,27 @@ export const api = {
     }
   },
 
+  async toggleServiceStatus(isOpen: boolean): Promise<{ success: boolean; message: string }> {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return { success: false, message: "인증 세션이 만료되었습니다." };
+      const response = await fetch("/api/admin/toggle-service-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ isOpen })
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, message: data.error || "상태 변경 실패" };
+      return { success: true, message: data.message };
+    } catch (e: any) {
+      console.error("toggleServiceStatus error:", e);
+      return { success: false, message: e.message || "상태 변경 중 오류가 발생했습니다." };
+    }
+  },
+
   async migratePointsTo100x(): Promise<{ success: boolean; message: string }> {
     try {
       const profilesSnap = await getDocs(collection(db, "profiles"));

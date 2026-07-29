@@ -291,9 +291,62 @@ async function startServer() {
     }
   };
 
+  const isSystemOpenForUser = async (uid: string) => {
+    try {
+      const db = getAdminDb();
+      const configSnap = await db.collection("system_config").doc("launch").get();
+      const isOpen = configSnap.exists ? Boolean(configSnap.data()?.is_open) : false;
+      if (isOpen) return true;
+
+      // If locked, allow access if user is admin
+      if (!uid) return false;
+      const userDoc = await db.collection("profiles").doc(uid).get();
+      return userDoc.exists && userDoc.data()?.role === "admin";
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // GET /api/system-status - Fetch service launch state
+  app.get("/api/system-status", async (_req, res) => {
+    try {
+      const db = getAdminDb();
+      const configSnap = await db.collection("system_config").doc("launch").get();
+      const isOpen = configSnap.exists ? Boolean(configSnap.data()?.is_open) : false;
+      return res.json({ is_open: isOpen });
+    } catch (err: any) {
+      return res.json({ is_open: false });
+    }
+  });
+
+  // POST /api/admin/toggle-service-status - Admin toggle service launch
+  app.post("/api/admin/toggle-service-status", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { isOpen } = req.body;
+      const db = getAdminDb();
+      const configRef = db.collection("system_config").doc("launch");
+      
+      await configRef.set({
+        is_open: Boolean(isOpen),
+        updated_at: FieldValue.serverTimestamp(),
+        updated_by: req.user?.uid || 'admin'
+      }, { merge: true });
+
+      const statusText = isOpen ? "전사 정식 오픈 완료" : "비공개(오픈 준비 중) 모드 전환";
+      return res.json({ success: true, is_open: Boolean(isOpen), message: `서비스 상태가 [${statusText}]로 변경되었습니다.` });
+    } catch (err: any) {
+      console.error("[API Toggle Service] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "서비스 상태 변경 실패" });
+    }
+  });
+
   // POST /api/praise - Atomic send praise & transfer points
   app.post("/api/praise", authenticateUser, async (req: AuthenticatedRequest, res) => {
     try {
+      if (!(await isSystemOpenForUser(req.user?.uid || ""))) {
+        return res.status(403).json({ error: "현재 정식 서비스 오픈 준비 중입니다." });
+      }
+
       const { sender_id, receiver_id, core_value_id, points, message } = req.body;
 
       if (req.user?.uid !== sender_id) {
@@ -397,6 +450,10 @@ async function startServer() {
   // POST /api/withdraw - Gifticon exchange and withdrawal
   app.post("/api/withdraw", authenticateUser, async (req: AuthenticatedRequest, res) => {
     try {
+      if (!(await isSystemOpenForUser(req.user?.uid || ""))) {
+        return res.status(403).json({ error: "현재 정식 서비스 오픈 준비 중입니다." });
+      }
+
       const { user_id, points, bank_name, account_number, account_holder } = req.body;
 
       if (req.user?.uid !== user_id) {

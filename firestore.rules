@@ -84,5 +84,11 @@ service cloud.firestore {
       // Creation and deletion are handled exclusively by Server API
       allow create, delete: if false;
     }
+
+    // System Config Collection (Service launch control)
+    match /system_config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }

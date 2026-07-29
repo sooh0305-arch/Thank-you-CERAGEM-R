@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Trophy, Users, Heart, MessageSquare, Quote, X, ChevronRight, Bell, Check, Loader2, Sparkles, Star, ThumbsUp, HelpCircle, AlertCircle } from 'lucide-react';
+import { Send, Trophy, Users, Heart, MessageSquare, Quote, X, ChevronRight, Bell, Check, Loader2, Sparkles, Star, ThumbsUp, HelpCircle, AlertCircle, Lock } from 'lucide-react';
 import { Profile, Transaction } from '../types';
 import SendModal from './SendModal';
 import { api } from '../lib/api';
@@ -12,11 +12,21 @@ interface DashboardProps {
   allUsers: Profile[];
   refreshData: () => void;
   onNavigate: (page: string) => void;
+  isSystemOpen?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, onNavigate, isSystemOpen = false }) => {
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [isLaunchNoticeOpen, setIsLaunchNoticeOpen] = useState(false);
   const [selectedCoreValueId, setSelectedCoreValueId] = useState<number | null>(null);
+
+  const handleOpenSendModal = () => {
+    if (!isSystemOpen && user.role !== 'admin') {
+      setIsLaunchNoticeOpen(true);
+      return;
+    }
+    setIsSendModalOpen(true);
+  };
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [selectedPraise, setSelectedPraise] = useState<Transaction | null>(null);
@@ -157,7 +167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, onNa
           
           <div className="pt-4">
             <button
-              onClick={() => setIsSendModalOpen(true)}
+              onClick={handleOpenSendModal}
               className="group flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-all duration-200 shadow-md"
             >
               <Send size={16} />
@@ -221,63 +231,88 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, onNa
       {/* Praise Feed Section - Clean live activity feed */}
       <div className="space-y-5">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-lg lg:text-xl font-bold text-slate-900">
-            칭찬 피드 런웨이
+          <h2 className="text-lg lg:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <span>칭찬 피드 런웨이</span>
+            {!isSystemOpen && user.role === 'admin' && (
+              <span className="text-xs bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-bold">
+                🛠️ 관리자 공개 상태
+              </span>
+            )}
           </h2>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Global Live Activity</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {isLoadingFeed ? (
-            <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300">
-              <div className="animate-spin rounded-full h-8 w-8 border-4 border-rose-100 border-t-[#E63946] mb-3" />
-              <p className="font-semibold text-sm text-slate-500">소식 수신 중...</p>
+        {!isSystemOpen && user.role !== 'admin' ? (
+          <div className="bg-white p-8 lg:p-14 rounded-3xl border border-slate-100 shadow-sm text-center flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 bg-rose-50 text-[#E63946] rounded-2xl flex items-center justify-center border border-rose-100/60 shadow-inner">
+              <Lock size={32} />
             </div>
-          ) : recentTransactions.length === 0 ? (
-            <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center px-4 shadow-sm">
-              <MessageSquare size={36} className="mb-3 opacity-25 text-[#E63946]" />
-              <p className="font-bold text-sm text-slate-800">아직 등록된 칭찬이 없네요.</p>
-              <p className="text-xs text-slate-400 mt-1">첫 번째 칭찬의 주인공이 되어 무대를 빛내주세요!</p>
+            <div className="space-y-1">
+              <span className="inline-block px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-extrabold text-[11px] tracking-wider uppercase">
+                SERVICE LAUNCH PREPARATION
+              </span>
+              <h3 className="text-xl lg:text-2xl font-extrabold text-slate-900">
+                칭찬 피드 런웨이 정식 오픈 준비 중입니다 🚀
+              </h3>
             </div>
-          ) : (
-            recentTransactions.map((tx, idx) => {
-              const themeStyle = valueStyles[(tx.core_value_id - 1) % valueStyles.length] || valueStyles[0];
-              return (
-                <div 
-                  key={tx.id} 
-                  onClick={() => setSelectedPraise(tx)}
-                  className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer relative overflow-hidden"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center min-w-0">
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-900 text-sm leading-none truncate">{tx.receiver?.name || '동료'}</p>
-                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1 truncate">{tx.receiver?.department || 'CERAGEM'}</p>
+            <p className="text-slate-600 text-xs lg:text-sm max-w-md leading-relaxed break-keep">
+              현재 세라젬 전사 칭찬 피드 런웨이 서비스 오픈을 준비하고 있습니다.<br />
+              관리자의 서비스 전격 공개 후 동료들과의 따뜻한 칭찬 메시지가 실시간으로 공개됩니다!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isLoadingFeed ? (
+              <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-rose-100 border-t-[#E63946] mb-3" />
+                <p className="font-semibold text-sm text-slate-500">소식 수신 중...</p>
+              </div>
+            ) : recentTransactions.length === 0 ? (
+              <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center px-4 shadow-sm">
+                <MessageSquare size={36} className="mb-3 opacity-25 text-[#E63946]" />
+                <p className="font-bold text-sm text-slate-800">아직 등록된 칭찬이 없네요.</p>
+                <p className="text-xs text-slate-400 mt-1">첫 번째 칭찬의 주인공이 되어 무대를 빛내주세요!</p>
+              </div>
+            ) : (
+              recentTransactions.map((tx, idx) => {
+                const themeStyle = valueStyles[(tx.core_value_id - 1) % valueStyles.length] || valueStyles[0];
+                return (
+                  <div 
+                    key={tx.id} 
+                    onClick={() => setSelectedPraise(tx)}
+                    className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer relative overflow-hidden"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center min-w-0">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 text-sm leading-none truncate">{tx.receiver?.name || '동료'}</p>
+                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1 truncate">{tx.receiver?.department || 'CERAGEM'}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="relative mb-4 min-h-[55px]">
-                    <p className="text-xs lg:text-sm text-slate-600 leading-relaxed font-normal line-clamp-3">
-                      "{tx.message}"
-                    </p>
-                  </div>
+                    <div className="relative mb-4 min-h-[55px]">
+                      <p className="text-xs lg:text-sm text-slate-600 leading-relaxed font-normal line-clamp-3">
+                        "{tx.message}"
+                      </p>
+                    </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg truncate max-w-[140px]">
-                        세라제머십 {tx.core_value_id} • {themeStyle.label}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg truncate max-w-[140px]">
+                          세라제머십 {tx.core_value_id} • {themeStyle.label}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-[#E63946] flex items-center shrink-0 group-hover:translate-x-0.5 transition-transform gap-0.5">
+                        상세 보기 <ChevronRight size={12} />
                       </span>
                     </div>
-                    <span className="text-xs font-bold text-[#E63946] flex items-center shrink-0 group-hover:translate-x-0.5 transition-transform gap-0.5">
-                      상세 보기 <ChevronRight size={12} />
-                    </span>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
       {/* Praise Detail Modal (Responsive) - Clean slate and white theme */}
@@ -475,6 +510,31 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, onNa
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Launch Notice Alert Modal */}
+      {isLaunchNoticeOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xl w-full max-w-md overflow-hidden p-6 lg:p-8 space-y-5 text-center animate-scale-in">
+            <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-100">
+              <Lock size={30} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-extrabold text-slate-900">정식 오픈 준비 중입니다 🚀</h3>
+              <p className="text-xs lg:text-sm text-slate-600 leading-relaxed break-keep">
+                현재 세라젬 칭찬 시스템 전사 서비스 오픈을 최종 정비하고 있습니다.<br />
+                관리자의 오픈 승인 후 자유롭게 칭찬과 응원의 포인트 발송이 가능합니다!
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                onClick={() => setIsLaunchNoticeOpen(false)}
+                className="w-full py-3 bg-slate-900 hover:bg-[#E63946] text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
+              >
+                확인
+              </button>
+            </div>
           </div>
         </div>
       )}

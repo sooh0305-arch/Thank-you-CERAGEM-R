@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Gift, Clock, CheckCircle, AlertCircle, RefreshCw, Star, Tag, Smartphone, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Gift, Clock, CheckCircle, AlertCircle, RefreshCw, Star, Tag, Smartphone, ArrowRight, Lock } from 'lucide-react';
 import { Profile, Withdrawal } from '../types';
 import { api } from '../lib/api';
 
 interface GiftShopProps {
   user: Profile;
   refreshData: () => void;
+  isSystemOpen?: boolean;
+  onNavigate?: (page: string) => void;
 }
 
 interface GiftItem {
@@ -93,13 +95,43 @@ const GIFT_ITEMS: GiftItem[] = [
   }
 ];
 
-const GiftShop: React.FC<GiftShopProps> = ({ user, refreshData }) => {
+const GiftShop: React.FC<GiftShopProps> = ({ user, refreshData, isSystemOpen = false, onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [purchases, setPurchases] = useState<Withdrawal[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [selectedItem, setSelectedItem] = useState<GiftItem | null>(null);
+
+  if (!isSystemOpen && user.role !== 'admin') {
+    return (
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 lg:p-16 text-center max-w-2xl mx-auto my-8 space-y-6 animate-fade-in">
+        <div className="w-20 h-20 bg-rose-50 text-[#E63946] rounded-3xl flex items-center justify-center mx-auto border border-rose-100/60 shadow-inner">
+          <Lock size={40} />
+        </div>
+        <div className="space-y-2">
+          <span className="inline-block px-3.5 py-1 rounded-full bg-slate-100 text-slate-600 font-extrabold text-xs tracking-wider uppercase">
+            SERVICE LAUNCH PREPARATION
+          </span>
+          <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-900">
+            기프티콘 상점 정식 오픈 준비 중입니다 🚀
+          </h2>
+        </div>
+        <p className="text-slate-600 text-sm lg:text-base leading-relaxed break-keep">
+          현재 세라젬 칭찬 시스템 정식 오픈을 최우선으로 정비하고 있습니다.<br />
+          정식 서비스 오픈 완료 후, 보유하신 칭찬 포인트로 네이버페이, CU 모바일 상품권 등 다양한 기프티콘 교환이 가능합니다!
+        </p>
+        <div className="pt-4">
+          <button
+            onClick={() => onNavigate && onNavigate('dashboard')}
+            className="px-6 py-3 bg-slate-900 hover:bg-[#E63946] text-white font-bold text-sm rounded-xl transition-colors shadow-sm"
+          >
+            대시보드 홈으로 이동
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const fetchPurchaseHistory = async () => {
     setIsLoadingHistory(true);

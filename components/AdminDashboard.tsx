@@ -12,9 +12,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface AdminDashboardProps {
   currentUser: Profile;
   refreshData?: () => Promise<void>;
+  isSystemOpen?: boolean;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshData }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshData, isSystemOpen = false }) => {
   const [activeTab, setActiveTab] = useState<'ranking' | 'users' | 'praise_list' | 'withdrawal_requests' | 'stats' | 'control'>('ranking');
   const [users, setUsers] = useState<Profile[]>([]);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
@@ -25,7 +26,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
   const [fullResetting, setFullResetting] = useState(false);
   const [initializing, setInitializing] = useState(false);
   const [migrating, setMigrating] = useState(false);
+  const [togglingLaunch, setTogglingLaunch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleToggleLaunch = async (targetStatus: boolean) => {
+    const confirmMsg = targetStatus
+      ? "🚀 [시스템 전격 오픈] 일반 사용자가 칭찬 피드 런웨이와 기프티콘 상점을 이용할 수 있도록 정식 공개하시겠습니까?"
+      : "🔒 [시스템 준비 모드] 일반 사용자의 칭찬 피드 런웨이 및 기프티콘 상점 접근을 차단하고 오픈 준비 화면으로 전환하시겠습니까?";
+    
+    if (!window.confirm(confirmMsg)) return;
+
+    setTogglingLaunch(true);
+    try {
+      const res = await api.toggleServiceStatus(targetStatus);
+      if (res.success) {
+        alert(res.message);
+        if (refreshData) await refreshData();
+      } else {
+        alert("오류: " + res.message);
+      }
+    } catch (e: any) {
+      alert("오류 발생: " + e.message);
+    } finally {
+      setTogglingLaunch(false);
+    }
+  };
   
   // Modals state
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
@@ -247,6 +272,58 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fade-in pb-16">
+      {/* Service Launch Control Banner */}
+      <div className={`p-6 rounded-3xl border shadow-sm transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+        isSystemOpen 
+          ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-950' 
+          : 'bg-amber-50/80 border-amber-200 text-amber-950'
+      }`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-xs ${
+            isSystemOpen 
+              ? 'bg-emerald-600 text-white border-emerald-500' 
+              : 'bg-amber-600 text-white border-amber-500'
+          }`}>
+            <Lock size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                isSystemOpen ? 'bg-emerald-200/80 text-emerald-900' : 'bg-amber-200/80 text-amber-900'
+              }`}>
+                {isSystemOpen ? 'Live Status: 서비스 정식 오픈됨' : 'Live Status: 준비 모드 (일반직원 비공개)'}
+              </span>
+            </div>
+            <h3 className="text-base lg:text-lg font-bold mt-1">
+              {isSystemOpen 
+                ? '현재 칭찬 피드 런웨이 & 기프티콘 상점이 전사 공개되어 있습니다.' 
+                : '현재 일반 직원의 피드 및 기프티콘 상점 이용이 잠겨있습니다.'}
+            </h3>
+            <p className="text-xs opacity-80 mt-0.5 leading-relaxed">
+              {isSystemOpen
+                ? '모든 직원이 실시간으로 칭찬 메시지를 보내고, 피드를 감상하며 기프티콘을 교환할 수 있습니다.'
+                : '공유 링크로 접속한 일반 직원은 "정식 오픈 준비 중" 안내만 확인 가능하며, 관리자는 전체 테스트가 가능합니다.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => handleToggleLaunch(!isSystemOpen)}
+          disabled={togglingLaunch}
+          className={`px-5 py-3 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-2 shrink-0 disabled:opacity-50 ${
+            isSystemOpen
+              ? 'bg-amber-700 hover:bg-amber-800 text-white'
+              : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+          }`}
+        >
+          {togglingLaunch ? (
+            <RefreshCw size={14} className="animate-spin" />
+          ) : (
+            <Lock size={14} />
+          )}
+          <span>{isSystemOpen ? '🔒 서비스 준비 모드로 전환' : '🚀 서비스 정식 오픈하기'}</span>
+        </button>
+      </div>
       
       {/* Tab Container */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">

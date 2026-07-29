@@ -22,6 +22,22 @@ const App: React.FC = () => {
   const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSystemOpen, setIsSystemOpen] = useState(false);
+
+  // System Launch Config Listener
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "system_config", "launch"), (docSnap) => {
+      if (docSnap.exists()) {
+        setIsSystemOpen(Boolean(docSnap.data()?.is_open));
+      } else {
+        setIsSystemOpen(false);
+      }
+    }, (err) => {
+      console.error("System launch listener error:", err);
+      setIsSystemOpen(false);
+    });
+    return () => unsub();
+  }, []);
 
   // Firebase Auth 상태 추적 및 SAML Custom Token 처리
   useEffect(() => {
@@ -253,6 +269,7 @@ const App: React.FC = () => {
         onNotificationClick={handleNotificationClickInHeader}
         onMarkAllAsRead={handleMarkAllNotificationsAsRead}
         onProfileUpdated={handleProfileUpdated}
+        isSystemOpen={isSystemOpen}
       >
         <div className="animate-fade-in">
           {currentPage === 'dashboard' && (
@@ -261,13 +278,19 @@ const App: React.FC = () => {
               allUsers={allUsers}
               refreshData={refreshData}
               onNavigate={setCurrentPage}
+              isSystemOpen={isSystemOpen}
             />
           )}
           {currentPage === 'history' && (
             <History user={currentUser} users={allUsers} />
           )}
           {currentPage === 'giftshop' && (
-            <GiftShop user={currentUser} refreshData={refreshData} />
+            <GiftShop 
+              user={currentUser} 
+              refreshData={refreshData} 
+              isSystemOpen={isSystemOpen}
+              onNavigate={setCurrentPage}
+            />
           )}
           {currentPage === 'guide' && (
             <Guide />
@@ -276,6 +299,7 @@ const App: React.FC = () => {
             <AdminDashboard 
               currentUser={currentUser} 
               refreshData={refreshData} 
+              isSystemOpen={isSystemOpen}
             />
           )}
         </div>
