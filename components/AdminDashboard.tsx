@@ -5,7 +5,7 @@ import { CERAGEMERSHIP_VALUES } from '../constants';
 import { 
   RefreshCw, Settings, TrendingUp, Users, 
   Edit3, X, FileText, BarChart3, Search, Heart, 
-  ShoppingBag, Trash2, ShieldAlert, Lock, Info, MessageCircle, Calendar, UserPlus, AlertTriangle
+  ShoppingBag, Trash2, ShieldAlert, Lock, Info, MessageCircle, Calendar, UserPlus, AlertTriangle, Coins
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -22,7 +22,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
   const [allWithdrawals, setAllWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
+  const [resettingBudget, setResettingBudget] = useState(false);
+  const [resettingCounts, setResettingCounts] = useState(false);
   const [fullResetting, setFullResetting] = useState(false);
   const [initializing, setInitializing] = useState(false);
   const [migrating, setMigrating] = useState(false);
@@ -175,20 +176,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
     }
   };
 
-  const handleGlobalReset = async () => {
-    const confirmMessage = "🚨 [주의] 전 직원의 '보내는 포인트'를 10,000P로 초기화하고 칭찬 횟수 제한을 해제하시겠습니까? 이 작업은 되돌릴 수 없습니다.";
+  const handleQuarterlyBudgetReset = async () => {
+    const confirmMessage = "🚀 [분기 발송 예산 초기화]\n\n전 직원의 '보내는 포인트(Giving Budget)'를 50,000P로 일괄 리셋하시겠습니까?\n\n※ 주의: 기존 미사용 잔여 예산은 이월되지 않고 소멸되며 50,000P로 재설정됩니다. (수신 받은 보유 포인트는 영향 없음)";
     if (!window.confirm(confirmMessage)) return;
     
-    setResetting(true);
+    setResettingBudget(true);
     const result = await api.resetAllBudgets();
     if (result.success) {
-      alert("전 직원 포인트 예산 초기화가 완료되었습니다.");
+      alert(result.message || "전 직원 분기 발송 예산이 50,000P로 초기화되었습니다.");
       if (refreshData) await refreshData();
       fetchData();
     } else {
-      alert("초기화 중 오류가 발생했습니다.");
+      alert(result.error || "초기화 중 오류가 발생했습니다.");
     }
-    setResetting(false);
+    setResettingBudget(false);
+  };
+
+  const handleMonthlyCountReset = async () => {
+    const confirmMessage = "🔄 [월별 1인당 발송 횟수 초기화]\n\n전 직원의 동일인 대상 칭찬 발송 횟수 제한(월 1인당 최대 2회)을 초기화하시겠습니까?\n\n초기화 실행 시 모든 직원이 동일한 동료에게 다시 칭찬 메시지를 작성할 수 있습니다.";
+    if (!window.confirm(confirmMessage)) return;
+
+    setResettingCounts(true);
+    const result = await api.resetMonthlyCounts();
+    if (result.success) {
+      alert(result.message || "월별 1인당 칭찬 발송 횟수 제한이 성공적으로 초기화되었습니다.");
+      if (refreshData) await refreshData();
+      fetchData();
+    } else {
+      alert(result.error || "초기화 중 오류가 발생했습니다.");
+    }
+    setResettingCounts(false);
   };
 
   const handleSystemReset = async () => {
@@ -795,26 +812,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                     </button>
                   </div>
 
-                   {/* Action 2 */}
+                   {/* Action 2A: Quarterly Budget Reset */}
                   <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-4">
                     <div className="flex items-start gap-4">
                       <div className="p-2.5 bg-[#E63946]/5 text-[#E63946] rounded-xl shrink-0">
-                        <ShieldAlert size={20} />
+                        <Coins size={20} />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-800 mb-0.5">월 단위 예산 리셋</h3>
+                        <h3 className="text-sm font-bold text-slate-800 mb-0.5">분기별 발송 예산 초기화 (50,000P)</h3>
                         <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                          전 직원의 '보내는 포인트(Giving Budget)' 한도를 10,000P로 다시 채워주고 칭찬 횟수 한도를 해제합니다. (수신 보유 포인트는 유지됨)
+                          분기 시작 시 전 직원의 '보내는 포인트(Giving Budget)'를 50,000P로 일괄 리셋합니다. (기존 미사용 잔여 예산은 이월되지 않고 소멸되며, 수신받아 보유 중인 포인트는 영향을 받지 않습니다)
                         </p>
                       </div>
                     </div>
                     <button 
-                      onClick={handleGlobalReset}
-                      disabled={resetting}
+                      onClick={handleQuarterlyBudgetReset}
+                      disabled={resettingBudget}
                       className="w-full py-3 bg-[#E63946] hover:bg-[#d52b38] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 shadow-sm"
                     >
-                      {resetting ? <RefreshCw className="animate-spin text-white w-4 h-4" /> : <Trash2 size={14} />}
-                      <span>칭찬 예산 리셋 실행 (10,000P 한도)</span>
+                      {resettingBudget ? <RefreshCw className="animate-spin text-white w-4 h-4" /> : <Coins size={14} />}
+                      <span>분기 발송 예산 초기화 실행 (50,000P 설정)</span>
+                    </button>
+                  </div>
+
+                  {/* Action 2B: Monthly Count Limit Reset */}
+                  <div className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2.5 bg-sky-50 text-sky-600 rounded-xl shrink-0">
+                        <RefreshCw size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 mb-0.5">월별 1인당 발송 횟수 초기화</h3>
+                        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                          매월 시작 시 전 직원의 동일인 대상 칭찬 발송 카운트(동일 동료 기준 월 최대 2회 제한)를 초기화하여 다시 칭찬 메시지를 보낼 수 있도록 설정합니다.
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleMonthlyCountReset}
+                      disabled={resettingCounts}
+                      className="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 shadow-sm"
+                    >
+                      {resettingCounts ? <RefreshCw className="animate-spin text-white w-4 h-4" /> : <RefreshCw size={14} />}
+                      <span>월별 1인당 발송 횟수(월 2회) 초기화 실행</span>
                     </button>
                   </div>
 

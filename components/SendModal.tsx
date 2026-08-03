@@ -42,14 +42,18 @@ const SendModal: React.FC<SendModalProps> = ({ isOpen, onClose, currentUser, use
       if (selectedUser) {
         const allTx = await api.getAllTransactions();
         const resetAt = currentUser.praise_reset_at ? new Date(currentUser.praise_reset_at).getTime() : 0;
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        const effectiveLimitTime = Math.max(resetAt, startOfMonth);
+
         const history = allTx.filter(t => 
           t.sender_id === currentUser.id && 
           t.receiver_id === selectedUser.id &&
-          new Date(t.created_at).getTime() > resetAt
+          new Date(t.created_at).getTime() >= effectiveLimitTime
         );
         setPraiseHistoryWithUser(history);
         if (history.length >= 2) {
-          setErrorMsg(`${selectedUser.name}님에게는 이번 회차의 칭찬을 모두 보내셨습니다.`);
+          setErrorMsg(`${selectedUser.name}님에게는 이번 달 칭찬(월 최대 2회)을 이미 모두 보내셨습니다.`);
         } else {
           setErrorMsg(null);
         }

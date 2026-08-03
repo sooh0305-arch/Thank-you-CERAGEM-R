@@ -373,28 +373,41 @@ async function startServer() {
 
       const db = getAdminDb();
 
-      // Check monthly per-recipient limit (max 1,000P per recipient per month)
+      // Check monthly per-recipient count limit (max 2 times per recipient per month / cycle)
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const settingsSnap = await db.collection("system_config").doc("praise_settings").get();
+      let monthlyCountResetAt = startOfMonth;
+      if (settingsSnap.exists) {
+        const settingsData = settingsSnap.data();
+        if (settingsData?.monthly_count_reset_at) {
+          const resetDate = settingsData.monthly_count_reset_at.toDate 
+            ? settingsData.monthly_count_reset_at.toDate() 
+            : new Date(settingsData.monthly_count_reset_at);
+          if (resetDate > monthlyCountResetAt) {
+            monthlyCountResetAt = resetDate;
+          }
+        }
+      }
 
       const txSnap = await db.collection("transactions")
         .where("sender_id", "==", sender_id)
         .where("receiver_id", "==", receiver_id)
         .get();
 
-      let pointsSentToRecipientThisMonth = 0;
+      let praisesSentToRecipientThisMonth = 0;
       txSnap.forEach(doc => {
         const d = doc.data();
         const createdAt = d.created_at?.toDate ? d.created_at.toDate() : new Date(d.created_at);
-        if (createdAt >= startOfMonth) {
-          pointsSentToRecipientThisMonth += (d.points || 0);
+        if (createdAt >= monthlyCountResetAt) {
+          praisesSentToRecipientThisMonth += 1;
         }
       });
 
-      if (pointsSentToRecipientThisMonth + numPoints > 1000) {
-        const remainingLimit = Math.max(0, 1000 - pointsSentToRecipientThisMonth);
+      if (praisesSentToRecipientThisMonth >= 2) {
         return res.status(400).json({ 
-          error: `동일한 동료에게는 월 최대 1,000P까지만 발송 가능합니다. (이번 달 현재 보낸 포인트: ${pointsSentToRecipientThisMonth}P, 잔여 가능: ${remainingLimit}P)` 
+          error: `동일한 동료에게는 월 최대 2회까지만 칭찬을 보낼 수 있습니다. (이번 달 이미 2회 전송 완료)` 
         });
       }
 
@@ -614,7 +627,7 @@ async function startServer() {
     }
   });
 
-  // POST /api/admin/reset-budgets - Reset giving budget to 10000
+  // POST /api/admin/reset-budgets - Reset quarterly giving budget to 50000
   app.post("/api/admin/reset-budgets", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const db = getAdminDb();
@@ -624,14 +637,31 @@ async function startServer() {
       const nowISO = new Date().toISOString();
 
       snap.forEach(doc => {
-        batch.update(doc.ref, { giving_budget: 10000, praise_reset_at: nowISO });
+        batch.update(doc.ref, { giving_budget: 50000, praise_reset_at: nowISO });
       });
 
       await batch.commit();
-      return res.json({ success: true, message: "전체 사용자 발송 예산이 10,000P로 초기화되었습니다." });
+      return res.json({ success: true, message: "전체 사용자 분기 발송 예산이 50,000P로 초기화되었습니다. (미사용 예산 소멸)" });
     } catch (err: any) {
       console.error("[API Admin Reset Budgets] Error:", err?.message || err);
       return res.status(400).json({ error: err?.message || "예산 초기화 실패" });
+    }
+  });
+
+  // POST /api/admin/reset-monthly-counts - Reset monthly praise count limits (1 per recipient limit reset)
+  app.post("/api/admin/reset-monthly-counts", authenticateUser, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const db = getAdminDb();
+      const settingsRef = db.collection("system_config").doc("praise_settings");
+      await settingsRef.set({
+        monthly_count_reset_at: FieldValue.serverTimestamp(),
+        updated_by: req.user?.uid || 'admin'
+      }, { merge: true });
+
+      return res.json({ success: true, message: "월별 1인당 칭찬 발송 횟수 제한(월 2회)이 성황리에 초기화되었습니다." });
+    } catch (err: any) {
+      console.error("[API Admin Reset Monthly Counts] Error:", err?.message || err);
+      return res.status(400).json({ error: err?.message || "발송 횟수 초기화 실패" });
     }
   });
 
@@ -657,7 +687,7 @@ async function startServer() {
 
       profilesSnap.forEach(d => {
         batch.update(d.ref, {
-          giving_budget: 10000,
+          giving_budget: 50000,
           received_wallet: 0,
           spent_points: 0,
           praise_reset_at: nowTS

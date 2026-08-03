@@ -535,7 +535,7 @@ export const api = {
     }
   },
 
-  async resetAllBudgets(): Promise<{ success: boolean; error?: string }> {
+  async resetAllBudgets(): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return { success: false, error: "인증 세션이 만료되었습니다." };
@@ -548,7 +548,26 @@ export const api = {
       });
       const data = await response.json();
       if (!response.ok) return { success: false, error: data.error };
-      return { success: true };
+      return { success: true, message: data.message };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  },
+
+  async resetMonthlyCounts(): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return { success: false, error: "인증 세션이 만료되었습니다." };
+      const response = await fetch("/api/admin/reset-monthly-counts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error };
+      return { success: true, message: data.message };
     } catch (e: any) {
       return { success: false, error: e.message };
     }

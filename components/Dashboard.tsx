@@ -222,7 +222,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, allUsers, refreshData, onNa
           
           <div className="pt-2">
             <div className="w-full py-3 bg-slate-50 border border-dashed border-slate-200/60 rounded-xl flex items-center justify-center text-[10px] lg:text-xs font-bold text-slate-400 gap-1.5">
-              <span>매월 1일 10,000P 자동 충전</span>
+              <span>분기별 50,000P 충전 (미사용 포인트 소멸)</span>
             </div>
           </div>
         </div>

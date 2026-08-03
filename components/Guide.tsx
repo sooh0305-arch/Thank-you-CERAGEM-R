@@ -44,29 +44,29 @@ const Guide: React.FC = () => {
               <li className="flex gap-3">
                 <CheckCircle size={18} className="text-[#E63946] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm md:text-base font-bold text-slate-800">매월 1일 10,000P 리셋 충전</p>
-                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">동료들을 칭찬하고 응원하기 위해 채워지는 칭찬 전용 예산입니다.</p>
+                  <p className="text-sm md:text-base font-bold text-slate-800">분기별 50,000P 예산 충전</p>
+                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">매 분기(3개월)마다 동료들을 칭찬하고 응원하기 위해 50,000P의 칭찬 전용 예산이 채워집니다.</p>
                 </div>
               </li>
               <li className="flex gap-3">
                 <CheckCircle size={18} className="text-[#E63946] shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm md:text-base font-bold text-slate-800">미사용분 소멸 정책</p>
-                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">매 회차 미사용 Giving 포인트는 리셋 시점 소멸됩니다. 아낌없이 듬뿍 전하세요!</p>
+                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">분기 리셋 시 기존 미사용 Giving 포인트는 이월되지 않고 소멸되며 50,000P로 재설정됩니다. 아낌없이 듬뿍 전하세요!</p>
                 </div>
               </li>
               <li className="flex gap-3">
                 <CheckCircle size={18} className="text-[#E63946] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm md:text-base font-bold text-slate-800">1회 발송: 100P ~ 1,000P 제한</p>
-                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">전송하고 싶은 기여나 마음의 깊이에 맞춰 100P에서 1,000P까지 설정하세요.</p>
+                  <p className="text-sm md:text-base font-bold text-slate-800">1회 발송: 100P ~ 1,000P</p>
+                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">전송하고 싶은 기여나 마음의 깊이에 맞춰 100P에서 최대 1,000P까지 자유롭게 설정하세요.</p>
                 </div>
               </li>
               <li className="flex gap-3">
                 <CheckCircle size={18} className="text-[#E63946] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm md:text-base font-bold text-slate-800">동일 동료 회차당 2회 제한</p>
-                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">다양한 전사 동료들과 고루 소통하기 위해 동일인 제한을 적용합니다.</p>
+                  <p className="text-sm md:text-base font-bold text-slate-800">동일 동료 월 최대 2회 제한</p>
+                  <p className="text-xs md:text-sm text-slate-400 font-medium mt-1 leading-relaxed">전사 동료들과 고루 소통하기 위해 동일한 동료에게는 월 최대 2회까지 칭찬을 발송할 수 있습니다. (매월 1일/관리자 리셋 시 횟수 초기화)</p>
                 </div>
               </li>
             </ul>
