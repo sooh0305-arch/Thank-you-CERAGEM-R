@@ -274,7 +274,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
     return CERAGEMERSHIP_VALUES.find(cv => cv.id === id)?.text || '세라제머십';
   };
 
-  const sortedUsersByPoints = [...users].sort((a, b) => {
+  // 사용자가 받은 칭찬 건수 계산
+  const receivedPraiseCountMap = new Map<string, number>();
+  allTransactions.forEach(tx => {
+    if (tx.receiver_id) {
+      receivedPraiseCountMap.set(tx.receiver_id, (receivedPraiseCountMap.get(tx.receiver_id) || 0) + 1);
+    }
+  });
+
+  const sortedUsersByPraiseCount = [...users].sort((a, b) => {
+    const countA = receivedPraiseCountMap.get(a.id) || 0;
+    const countB = receivedPraiseCountMap.get(b.id) || 0;
+    if (countB !== countA) {
+      return countB - countA;
+    }
     const totalA = (a.received_wallet || 0) + (a.spent_points || 0);
     const totalB = (b.received_wallet || 0) + (b.spent_points || 0);
     return totalB - totalA;
@@ -406,52 +419,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
               {activeTab === 'ranking' && (
                 <div className="space-y-8">
                   {/* Podium Section for Top 3 */}
-                  {sortedUsersByPoints.length > 0 && (
+                  {sortedUsersByPraiseCount.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                       {/* 2nd Place */}
-                      {sortedUsersByPoints[1] && (
+                      {sortedUsersByPraiseCount[1] && (
                         <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex flex-col items-center text-center relative overflow-hidden order-2 md:order-1 md:mt-6 transition-all duration-300 hover:shadow-md">
                           <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-300" />
                           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border-4 border-slate-200 shadow-inner relative mb-3">
                             <span className="text-xl font-extrabold text-slate-500">2</span>
                             <div className="absolute -bottom-1 bg-slate-400 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">SILVER</div>
                           </div>
-                          <h3 className="font-extrabold text-slate-800 text-base">{sortedUsersByPoints[1].name}</h3>
-                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPoints[1].department || '부서 없음'}</p>
-                          <div className="mt-4 bg-slate-50 border border-slate-100 px-4 py-1.5 rounded-full text-xs font-black text-slate-600">
-                            {((sortedUsersByPoints[1].received_wallet || 0) + (sortedUsersByPoints[1].spent_points || 0)).toLocaleString()} P
+                          <h3 className="font-extrabold text-slate-800 text-base">{sortedUsersByPraiseCount[1].name}</h3>
+                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPraiseCount[1].department || '부서 없음'}</p>
+                          <div className="mt-4 bg-slate-50 border border-slate-100 px-4 py-1.5 rounded-full text-xs font-black text-slate-600 flex items-center gap-1.5">
+                            <span className="text-sm font-extrabold text-slate-800">{(receivedPraiseCountMap.get(sortedUsersByPraiseCount[1].id) || 0).toLocaleString()}회</span>
+                            <span className="text-[10px] text-slate-400 font-bold">({((sortedUsersByPraiseCount[1].received_wallet || 0) + (sortedUsersByPraiseCount[1].spent_points || 0)).toLocaleString()} P)</span>
                           </div>
                         </div>
                       )}
 
                       {/* 1st Place */}
-                      {sortedUsersByPoints[0] && (
+                      {sortedUsersByPraiseCount[0] && (
                         <div className="bg-white rounded-3xl border-2 border-amber-200 p-8 shadow-md flex flex-col items-center text-center relative overflow-hidden order-1 md:order-2 transform md:-translate-y-2 transition-all duration-300 hover:shadow-lg">
                           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-yellow-300" />
                           <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center border-4 border-amber-300 shadow-inner relative mb-3">
                             <span className="text-2xl font-extrabold text-amber-600">👑</span>
                             <div className="absolute -bottom-1 bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm">CHAMPION</div>
                           </div>
-                          <h3 className="font-black text-slate-800 text-lg">{sortedUsersByPoints[0].name}</h3>
-                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPoints[0].department || '부서 없음'}</p>
-                          <div className="mt-4 bg-amber-50 border border-amber-100 px-5 py-2 rounded-full text-sm font-black text-[#E63946] shadow-sm">
-                            {((sortedUsersByPoints[0].received_wallet || 0) + (sortedUsersByPoints[0].spent_points || 0)).toLocaleString()} P
+                          <h3 className="font-black text-slate-800 text-lg">{sortedUsersByPraiseCount[0].name}</h3>
+                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPraiseCount[0].department || '부서 없음'}</p>
+                          <div className="mt-4 bg-amber-50 border border-amber-100 px-5 py-2 rounded-full text-sm font-black text-[#E63946] shadow-sm flex items-center gap-1.5">
+                            <span className="text-base font-black">{(receivedPraiseCountMap.get(sortedUsersByPraiseCount[0].id) || 0).toLocaleString()}회</span>
+                            <span className="text-xs text-amber-700/80 font-bold">({((sortedUsersByPraiseCount[0].received_wallet || 0) + (sortedUsersByPraiseCount[0].spent_points || 0)).toLocaleString()} P)</span>
                           </div>
                         </div>
                       )}
 
                       {/* 3rd Place */}
-                      {sortedUsersByPoints[2] && (
+                      {sortedUsersByPraiseCount[2] && (
                         <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex flex-col items-center text-center relative overflow-hidden order-3 md:order-3 md:mt-6 transition-all duration-300 hover:shadow-md">
                           <div className="absolute top-0 left-0 w-full h-1.5 bg-orange-300" />
                           <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center border-4 border-orange-200 shadow-inner relative mb-3">
                             <span className="text-xl font-extrabold text-orange-600">3</span>
                             <div className="absolute -bottom-1 bg-orange-400 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">BRONZE</div>
                           </div>
-                          <h3 className="font-extrabold text-slate-800 text-base">{sortedUsersByPoints[2].name}</h3>
-                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPoints[2].department || '부서 없음'}</p>
-                          <div className="mt-4 bg-slate-50 border border-slate-100 px-4 py-1.5 rounded-full text-xs font-black text-slate-600">
-                            {((sortedUsersByPoints[2].received_wallet || 0) + (sortedUsersByPoints[2].spent_points || 0)).toLocaleString()} P
+                          <h3 className="font-extrabold text-slate-800 text-base">{sortedUsersByPraiseCount[2].name}</h3>
+                          <p className="text-xs text-slate-400 font-bold mt-1">{sortedUsersByPraiseCount[2].department || '부서 없음'}</p>
+                          <div className="mt-4 bg-slate-50 border border-slate-100 px-4 py-1.5 rounded-full text-xs font-black text-slate-600 flex items-center gap-1.5">
+                            <span className="text-sm font-extrabold text-slate-800">{(receivedPraiseCountMap.get(sortedUsersByPraiseCount[2].id) || 0).toLocaleString()}회</span>
+                            <span className="text-[10px] text-slate-400 font-bold">({((sortedUsersByPraiseCount[2].received_wallet || 0) + (sortedUsersByPraiseCount[2].spent_points || 0)).toLocaleString()} P)</span>
                           </div>
                         </div>
                       )}
@@ -461,8 +477,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                   {/* Complete Ranking List Table */}
                   <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                     <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                      <h2 className="font-extrabold text-slate-800 text-sm">전체 칭찬 랭킹 리스트</h2>
-                      <span className="text-[11px] text-slate-400 font-bold bg-slate-100 px-2.5 py-1 rounded-md">총 {sortedUsersByPoints.length}명</span>
+                      <h2 className="font-extrabold text-slate-800 text-sm">전체 칭찬 랭킹 리스트 (받은 칭찬 횟수 순)</h2>
+                      <span className="text-[11px] text-slate-400 font-bold bg-slate-100 px-2.5 py-1 rounded-md">총 {sortedUsersByPraiseCount.length}명</span>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[600px]">
@@ -471,12 +487,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                             <th className="px-8 py-4.5 text-left font-extrabold w-28">순위</th>
                             <th className="px-8 py-4.5 text-left font-extrabold">이름</th>
                             <th className="px-8 py-4.5 text-left font-extrabold">부서</th>
-                            <th className="px-8 py-4.5 text-right font-extrabold">누적 획득 포인트</th>
+                            <th className="px-8 py-4.5 text-right font-extrabold">받은 칭찬 횟수 (누적 포인트)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {sortedUsersByPoints.map((user, idx) => {
+                          {sortedUsersByPraiseCount.map((user, idx) => {
                             const rankNum = idx + 1;
+                            const praiseCount = receivedPraiseCountMap.get(user.id) || 0;
+                            const totalPoints = (user.received_wallet || 0) + (user.spent_points || 0);
                             return (
                               <tr key={user.id} className="hover:bg-slate-50/40 transition-all duration-150">
                                 <td className="px-8 py-5">
@@ -501,8 +519,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
                                     {user.department || '부서 없음'}
                                   </span>
                                 </td>
-                                <td className="px-8 py-5 text-right font-black text-[#E63946] text-sm">
-                                  {((user.received_wallet || 0) + (user.spent_points || 0)).toLocaleString()} P
+                                <td className="px-8 py-5 text-right font-black text-slate-800 text-sm">
+                                  <span className="text-[#E63946] text-base font-black">{praiseCount.toLocaleString()}회</span>
+                                  <span className="text-xs text-slate-400 font-semibold ml-2">({totalPoints.toLocaleString()} P)</span>
                                 </td>
                               </tr>
                             );
