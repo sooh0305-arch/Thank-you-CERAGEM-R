@@ -5,7 +5,8 @@ import { CERAGEMERSHIP_VALUES } from '../constants';
 import { 
   RefreshCw, Settings, TrendingUp, Users, 
   Edit3, X, FileText, BarChart3, Search, Heart, 
-  ShoppingBag, Trash2, ShieldAlert, Lock, Info, MessageCircle, Calendar, UserPlus, AlertTriangle, Coins
+  ShoppingBag, Trash2, ShieldAlert, Lock, Info, MessageCircle, Calendar, UserPlus, AlertTriangle, Coins,
+  Download, FileSpreadsheet, CheckCircle2, Clock
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -29,6 +30,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
   const [migrating, setMigrating] = useState(false);
   const [togglingLaunch, setTogglingLaunch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [withdrawalFilter, setWithdrawalFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
   const handleToggleLaunch = async (targetStatus: boolean) => {
     const confirmMsg = targetStatus
@@ -299,6 +301,136 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
     fullText: cv.text,
     count: allTransactions.filter(tx => tx.core_value_id === cv.id).length
   }));
+
+  // 기프티콘 신청 내역 엑셀 (CSV/BOM) 다운로드
+  const handleDownloadGifticonExcel = (dataToExport?: Withdrawal[]) => {
+    const list = dataToExport && dataToExport.length > 0 ? dataToExport : allWithdrawals;
+    if (!list || list.length === 0) {
+      alert("다운로드할 기프티콘 신청 내역이 없습니다.");
+      return;
+    }
+
+    const headers = [
+      "순번",
+      "신청일시",
+      "신청직원(이름)",
+      "부서/팀",
+      "직급",
+      "이메일",
+      "신청상품권(상품명)",
+      "브랜드/구분",
+      "상품가격(차감포인트)",
+      "처리상태",
+      "상세정보/계좌정보"
+    ];
+
+    const escapeCsv = (val: string | number | undefined | null) => {
+      if (val === undefined || val === null) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = list.map((w, index) => {
+      const dateStr = w.created_at ? new Date(w.created_at).toLocaleString('ko-KR') : '';
+      const statusText = w.status === 'approved'
+        ? (w.bank_name === '기프티콘 구매' ? '발송완료' : '지급완료')
+        : w.status === 'rejected' ? '반려됨' : '대기중';
+
+      const productName = w.bank_name === '기프티콘 구매' ? w.account_number : (w.bank_name || '모바일 상품권');
+      const brandName = w.bank_name === '기프티콘 구매' ? (w.account_holder || (w.account_number?.includes('CU') ? 'CU' : '네이버페이')) : w.bank_name;
+      const detailInfo = w.bank_name === '기프티콘 구매'
+        ? `상품명: ${w.account_number}`
+        : `${w.bank_name} ${w.account_number} (예금주: ${w.account_holder})`;
+
+      return [
+        escapeCsv(index + 1),
+        escapeCsv(dateStr),
+        escapeCsv(w.user?.name || w.account_holder || '미지정'),
+        escapeCsv(w.user?.department || '부서 없음'),
+        escapeCsv(w.user?.position || '-'),
+        escapeCsv(w.user?.email || '-'),
+        escapeCsv(productName),
+        escapeCsv(brandName),
+        escapeCsv(w.points),
+        escapeCsv(statusText),
+        escapeCsv(detailInfo)
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}_${String(today.getHours()).padStart(2, '0')}${String(today.getMinutes()).padStart(2, '0')}`;
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `세라젬_기프티콘_신청내역_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // 칭찬 내역 엑셀 다운로드
+  const handleDownloadPraiseExcel = (dataToExport?: Transaction[]) => {
+    const list = dataToExport && dataToExport.length > 0 ? dataToExport : allTransactions;
+    if (!list || list.length === 0) {
+      alert("다운로드할 칭찬 내역이 없습니다.");
+      return;
+    }
+
+    const headers = [
+      "순번",
+      "발송일시",
+      "보낸 사람",
+      "보낸 부서",
+      "받은 사람",
+      "받은 부서",
+      "핵심가치(세라제머십)",
+      "포인트(P)",
+      "칭찬 메시지"
+    ];
+
+    const escapeCsv = (val: string | number | undefined | null) => {
+      if (val === undefined || val === null) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = list.map((tx, index) => {
+      const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleString('ko-KR') : '';
+      const coreValue = getCeragemershipText(tx.core_value_id);
+
+      return [
+        escapeCsv(index + 1),
+        escapeCsv(dateStr),
+        escapeCsv(tx.sender?.name || '미지정'),
+        escapeCsv(tx.sender?.department || '-'),
+        escapeCsv(tx.receiver?.name || '미지정'),
+        escapeCsv(tx.receiver?.department || '-'),
+        escapeCsv(coreValue),
+        escapeCsv(tx.points),
+        escapeCsv(tx.message)
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}_${String(today.getHours()).padStart(2, '0')}${String(today.getMinutes()).padStart(2, '0')}`;
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `세라젬_칭찬내역_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fade-in pb-16">
@@ -616,134 +748,350 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, refreshDat
 
               {/* Praise List Tab */}
               {activeTab === 'praise_list' && (
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[700px]">
-                      <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
-                        <tr>
-                          <th className="px-6 py-4 text-left font-semibold">보낸 사람</th>
-                          <th className="px-6 py-4 text-left font-semibold">받은 사람</th>
-                          <th className="px-6 py-4 text-left font-semibold">칭찬 메시지</th>
-                          <th className="px-6 py-4 text-right font-semibold">포인트</th>
-                          <th className="px-6 py-4 text-right font-semibold">보낸 날짜</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {allTransactions.filter(tx => 
+                <div className="space-y-4">
+                  {/* Action / Export Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-800">칭찬 피드 전체 내역</span>
+                      <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                        총 {allTransactions.filter(tx => 
                           tx.sender?.name.includes(searchTerm) || 
                           tx.receiver?.name.includes(searchTerm) || 
                           tx.message.includes(searchTerm)
-                        ).map(tx => (
-                          <tr 
-                            key={tx.id} 
-                            onClick={() => setSelectedPraiseDetail(tx)}
-                            className="text-xs hover:bg-[#E63946]/5 cursor-pointer transition-colors"
-                          >
-                            <td className="px-6 py-4 font-semibold text-slate-800">{tx.sender?.name}</td>
-                            <td className="px-6 py-4 font-semibold text-slate-800">{tx.receiver?.name}</td>
-                            <td className="px-6 py-4 text-slate-400 max-w-[200px] truncate font-medium">{tx.message}</td>
-                            <td className="px-6 py-4 text-right font-bold text-[#E63946]">+{tx.points}P</td>
-                            <td className="px-6 py-4 text-right text-slate-400 whitespace-nowrap font-medium">{new Date(tx.created_at).toLocaleDateString()}</td>
+                        ).length}건
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDownloadPraiseExcel(allTransactions.filter(tx => 
+                        tx.sender?.name.includes(searchTerm) || 
+                        tx.receiver?.name.includes(searchTerm) || 
+                        tx.message.includes(searchTerm)
+                      ))}
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0"
+                    >
+                      <Download size={14} />
+                      <span>칭찬내역 엑셀 다운로드 (.csv)</span>
+                    </button>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[700px]">
+                        <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
+                          <tr>
+                            <th className="px-6 py-4 text-left font-semibold">보낸 사람</th>
+                            <th className="px-6 py-4 text-left font-semibold">받은 사람</th>
+                            <th className="px-6 py-4 text-left font-semibold">칭찬 메시지</th>
+                            <th className="px-6 py-4 text-right font-semibold">포인트</th>
+                            <th className="px-6 py-4 text-right font-semibold">보낸 날짜</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {allTransactions.filter(tx => 
+                            tx.sender?.name.includes(searchTerm) || 
+                            tx.receiver?.name.includes(searchTerm) || 
+                            tx.message.includes(searchTerm)
+                          ).map(tx => (
+                            <tr 
+                              key={tx.id} 
+                              onClick={() => setSelectedPraiseDetail(tx)}
+                              className="text-xs hover:bg-[#E63946]/5 cursor-pointer transition-colors"
+                            >
+                              <td className="px-6 py-4 font-semibold text-slate-800">
+                                {tx.sender?.name}
+                                {tx.sender?.department && <span className="text-[10px] text-slate-400 font-normal ml-1">({tx.sender.department})</span>}
+                              </td>
+                              <td className="px-6 py-4 font-semibold text-slate-800">
+                                {tx.receiver?.name}
+                                {tx.receiver?.department && <span className="text-[10px] text-slate-400 font-normal ml-1">({tx.receiver.department})</span>}
+                              </td>
+                              <td className="px-6 py-4 text-slate-400 max-w-[200px] truncate font-medium">{tx.message}</td>
+                              <td className="px-6 py-4 text-right font-bold text-[#E63946]">+{tx.points.toLocaleString()}P</td>
+                              <td className="px-6 py-4 text-right text-slate-400 whitespace-nowrap font-medium">{new Date(tx.created_at).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Withdrawal Requests Tab */}
-              {activeTab === 'withdrawal_requests' && (
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[700px]">
-                      <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
-                        <tr>
-                          <th className="px-6 py-4 text-left font-semibold">신청직원</th>
-                          <th className="px-6 py-4 text-left font-semibold">상품명 / 구분</th>
-                          <th className="px-6 py-4 text-right font-semibold">차감 포인트</th>
-                          <th className="px-6 py-4 text-center font-semibold">상태</th>
-                          <th className="px-6 py-4 text-right font-semibold">신청 시간</th>
-                          <th className="px-6 py-4 text-center font-semibold">작업</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {allWithdrawals.filter(w => w.user?.name.includes(searchTerm) || w.bank_name.includes(searchTerm) || w.account_holder.includes(searchTerm) || w.account_number.includes(searchTerm)).map(w => (
-                          <tr key={w.id} className="text-xs hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="font-semibold text-slate-800">{w.user?.name || w.account_holder}</div>
-                              <div className="text-[10px] text-slate-400 font-medium">{w.user?.department || '부서 없음'}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              {w.bank_name === '기프티콘 구매' ? (
-                                <>
-                                  <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                    <span className="bg-[#03C75A]/5 text-[#03C75A] px-1.5 py-0.5 rounded text-[9px] font-bold">네이버페이</span>
-                                    <span>{w.account_number}</span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-400 mt-0.5">구분: {w.account_holder}</div>
-                                </>
-                              ) : w.bank_name === '급여 합산 지급' ? (
-                                <span className="bg-rose-50 text-[#E63946] px-2.5 py-1 rounded-md text-[10px] font-bold border border-rose-100">
-                                  급여 합산 지급 예정 (급여 계좌)
-                                </span>
-                              ) : (
-                                <>
-                                  <div className="font-semibold text-slate-700">{w.bank_name}</div>
-                                  <div className="font-mono text-slate-500 text-[11px] mt-0.5">{w.account_number} (예금주: {w.account_holder})</div>
-                                </>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right font-extrabold text-[#E63946]">
-                              {w.points.toLocaleString()} P
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              {w.status === 'pending' && (
-                                <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-amber-100">
-                                  대기중
-                                </span>
-                              )}
-                              {w.status === 'approved' && (
-                                <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-emerald-100">
-                                  {w.bank_name === '기프티콘 구매' ? '발송완료' : '지급완료'}
-                                </span>
-                              )}
-                              {w.status === 'rejected' && (
-                                <span className="bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-rose-100">
-                                  반려됨
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right text-slate-400 font-medium whitespace-nowrap">
-                              {new Date(w.created_at).toLocaleString()}
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              {w.status === 'pending' ? (
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    onClick={() => handleUpdateWithdrawalStatus(w.id, 'approved')}
-                                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-colors shadow-sm"
-                                  >
-                                    승인
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateWithdrawalStatus(w.id, 'rejected')}
-                                    className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg transition-colors shadow-sm"
-                                  >
-                                    반려
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-slate-400 text-[11px] font-medium">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {/* Withdrawal Requests Tab (Gifticon Management) */}
+              {activeTab === 'withdrawal_requests' && (() => {
+                const searchFiltered = allWithdrawals.filter(w => 
+                  (w.user?.name && w.user.name.includes(searchTerm)) || 
+                  (w.bank_name && w.bank_name.includes(searchTerm)) || 
+                  (w.account_holder && w.account_holder.includes(searchTerm)) || 
+                  (w.account_number && w.account_number.includes(searchTerm)) ||
+                  (w.user?.department && w.user.department.includes(searchTerm))
+                );
+
+                const statusFiltered = searchFiltered.filter(w => {
+                  if (withdrawalFilter === 'all') return true;
+                  return w.status === withdrawalFilter;
+                });
+
+                const totalPoints = searchFiltered.reduce((acc, curr) => acc + (curr.points || 0), 0);
+                const pendingList = searchFiltered.filter(w => w.status === 'pending');
+                const pendingPoints = pendingList.reduce((acc, curr) => acc + (curr.points || 0), 0);
+                const approvedList = searchFiltered.filter(w => w.status === 'approved');
+                const approvedPoints = approvedList.reduce((acc, curr) => acc + (curr.points || 0), 0);
+                const rejectedList = searchFiltered.filter(w => w.status === 'rejected');
+
+                return (
+                  <div className="space-y-6">
+                    {/* Summary KPI Cards */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Total */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center justify-between text-slate-400 mb-2">
+                          <span className="text-[11px] font-bold">전체 신청 내역</span>
+                          <ShoppingBag size={16} />
+                        </div>
+                        <div className="text-xl font-black text-slate-800">{searchFiltered.length}건</div>
+                        <div className="text-xs font-bold text-slate-400 mt-1">{totalPoints.toLocaleString()} P</div>
+                      </div>
+
+                      {/* Pending */}
+                      <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 shadow-sm">
+                        <div className="flex items-center justify-between text-amber-700 mb-2">
+                          <span className="text-[11px] font-bold">발송 대기중</span>
+                          <Clock size={16} />
+                        </div>
+                        <div className="text-xl font-black text-amber-900">{pendingList.length}건</div>
+                        <div className="text-xs font-bold text-amber-700 mt-1">{pendingPoints.toLocaleString()} P</div>
+                      </div>
+
+                      {/* Approved */}
+                      <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/80 shadow-sm">
+                        <div className="flex items-center justify-between text-emerald-700 mb-2">
+                          <span className="text-[11px] font-bold">발송 / 지급 완료</span>
+                          <CheckCircle2 size={16} />
+                        </div>
+                        <div className="text-xl font-black text-emerald-900">{approvedList.length}건</div>
+                        <div className="text-xs font-bold text-emerald-700 mt-1">{approvedPoints.toLocaleString()} P</div>
+                      </div>
+
+                      {/* Rejected */}
+                      <div className="bg-rose-50/60 p-4 rounded-2xl border border-rose-200/60 shadow-sm">
+                        <div className="flex items-center justify-between text-rose-600 mb-2">
+                          <span className="text-[11px] font-bold">반려됨</span>
+                          <AlertTriangle size={16} />
+                        </div>
+                        <div className="text-xl font-black text-rose-900">{rejectedList.length}건</div>
+                        <div className="text-xs font-bold text-rose-500 mt-1">포인트 자동 환급 완료</div>
+                      </div>
+                    </div>
+
+                    {/* Filter Tabs & Excel Export Action Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                      {/* Filter Pills */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => setWithdrawalFilter('all')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                            withdrawalFilter === 'all'
+                              ? 'bg-slate-900 text-white shadow-sm'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                          }`}
+                        >
+                          전체 ({searchFiltered.length})
+                        </button>
+                        <button
+                          onClick={() => setWithdrawalFilter('pending')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                            withdrawalFilter === 'pending'
+                              ? 'bg-amber-600 text-white shadow-sm'
+                              : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/60'
+                          }`}
+                        >
+                          <span>대기중</span>
+                          <span className="bg-white/20 px-1.5 py-0.2 rounded-md text-[10px]">{pendingList.length}</span>
+                        </button>
+                        <button
+                          onClick={() => setWithdrawalFilter('approved')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                            withdrawalFilter === 'approved'
+                              ? 'bg-emerald-600 text-white shadow-sm'
+                              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60'
+                          }`}
+                        >
+                          <span>발송완료</span>
+                          <span className="bg-white/20 px-1.5 py-0.2 rounded-md text-[10px]">{approvedList.length}</span>
+                        </button>
+                        <button
+                          onClick={() => setWithdrawalFilter('rejected')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                            withdrawalFilter === 'rejected'
+                              ? 'bg-rose-600 text-white shadow-sm'
+                              : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200/60'
+                          }`}
+                        >
+                          반려 ({rejectedList.length})
+                        </button>
+                      </div>
+
+                      {/* Excel Download Button */}
+                      <button
+                        onClick={() => handleDownloadGifticonExcel(statusFiltered)}
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0"
+                        title="신청자명, 부서, 신청상품권, 가격(포인트), 신청시간 등의 정보를 엑셀 파일로 내려받습니다."
+                      >
+                        <Download size={15} />
+                        <span>기프티콘 신청내역 엑셀 다운로드 ({statusFiltered.length}건)</span>
+                      </button>
+                    </div>
+
+                    {/* Table View */}
+                    <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[750px]">
+                          <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
+                            <tr>
+                              <th className="px-6 py-4 text-left font-semibold">신청직원 / 부서</th>
+                              <th className="px-6 py-4 text-left font-semibold">신청 상품권 (기프티콘)</th>
+                              <th className="px-6 py-4 text-right font-semibold">가격 (차감포인트)</th>
+                              <th className="px-6 py-4 text-center font-semibold">처리 상태</th>
+                              <th className="px-6 py-4 text-right font-semibold">신청 일시</th>
+                              <th className="px-6 py-4 text-center font-semibold">발송/승인 관리</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {statusFiltered.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-xs font-semibold">
+                                  해당 조건에 일치하는 기프티콘 신청 내역이 없습니다.
+                                </td>
+                              </tr>
+                            ) : (
+                              statusFiltered.map(w => {
+                                const isGifticon = w.bank_name === '기프티콘 구매';
+                                const brandName = w.account_holder || (w.account_number?.includes('CU') ? 'CU' : '네이버페이');
+                                const isCu = brandName.includes('CU') || (w.account_number && w.account_number.includes('CU'));
+
+                                return (
+                                  <tr key={w.id} className="text-xs hover:bg-slate-50/50 transition-colors">
+                                    {/* Employee Info */}
+                                    <td className="px-6 py-4">
+                                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                                        <span>{w.user?.name || w.account_holder || '미지정'}</span>
+                                        {w.user?.position && (
+                                          <span className="text-[10px] text-slate-500 font-semibold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                            {w.user.position}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                        {w.user?.department || '부서 미지정'}
+                                        {w.user?.email && <span className="text-[10px] text-slate-400 ml-1.5">• {w.user.email}</span>}
+                                      </div>
+                                    </td>
+
+                                    {/* Voucher / Item Info */}
+                                    <td className="px-6 py-4">
+                                      {isGifticon ? (
+                                        <div className="space-y-1">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${
+                                              isCu
+                                                ? 'bg-[#742CB7]/10 text-[#742CB7] border-[#742CB7]/25'
+                                                : 'bg-[#03C75A]/10 text-[#03C75A] border-[#03C75A]/25'
+                                            }`}>
+                                              {brandName}
+                                            </span>
+                                            <span className="font-extrabold text-slate-800 text-xs">
+                                              {w.account_number}
+                                            </span>
+                                          </div>
+                                          <div className="text-[10px] text-slate-400 font-medium">
+                                            정상 신청된 모바일 기프티콘 쿠폰
+                                          </div>
+                                        </div>
+                                      ) : w.bank_name === '급여 합산 지급' ? (
+                                        <span className="bg-rose-50 text-[#E63946] px-2.5 py-1 rounded-md text-[10px] font-bold border border-rose-100">
+                                          급여 합산 지급 예정 (급여 계좌)
+                                        </span>
+                                      ) : (
+                                        <div>
+                                          <div className="font-semibold text-slate-700">{w.bank_name}</div>
+                                          <div className="font-mono text-slate-500 text-[11px] mt-0.5">{w.account_number} (예금주: {w.account_holder})</div>
+                                        </div>
+                                      )}
+                                    </td>
+
+                                    {/* Points / Price */}
+                                    <td className="px-6 py-4 text-right">
+                                      <span className="font-black text-[#E63946] text-sm">
+                                        {w.points.toLocaleString()}
+                                      </span>
+                                      <span className="text-[11px] font-bold text-slate-500 ml-0.5">P</span>
+                                    </td>
+
+                                    {/* Status Badge */}
+                                    <td className="px-6 py-4 text-center">
+                                      {w.status === 'pending' && (
+                                        <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200">
+                                          발송 대기중
+                                        </span>
+                                      )}
+                                      {w.status === 'approved' && (
+                                        <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold border border-emerald-200">
+                                          {isGifticon ? '발송완료' : '지급완료'}
+                                        </span>
+                                      )}
+                                      {w.status === 'rejected' && (
+                                        <span className="bg-rose-50 text-rose-700 px-3 py-1 rounded-full text-[10px] font-bold border border-rose-200">
+                                          반려됨
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* Date */}
+                                    <td className="px-6 py-4 text-right text-slate-400 font-medium whitespace-nowrap text-[11px]">
+                                      {new Date(w.created_at).toLocaleString('ko-KR', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </td>
+
+                                    {/* Action Buttons */}
+                                    <td className="px-6 py-4 text-center">
+                                      {w.status === 'pending' ? (
+                                        <div className="flex items-center justify-center gap-1.5">
+                                          <button
+                                            onClick={() => handleUpdateWithdrawalStatus(w.id, 'approved')}
+                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition-colors shadow-sm"
+                                            title="발송 완료로 상태 변경"
+                                          >
+                                            발송완료
+                                          </button>
+                                          <button
+                                            onClick={() => handleUpdateWithdrawalStatus(w.id, 'rejected')}
+                                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg transition-colors shadow-sm"
+                                            title="신청 반려 및 포인트 반환"
+                                          >
+                                            반려
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="text-slate-400 text-[11px] font-medium">-</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Stats Tab */}
               {activeTab === 'stats' && (
